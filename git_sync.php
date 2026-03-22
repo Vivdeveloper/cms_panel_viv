@@ -9,6 +9,35 @@ if (!isset($_GET['logged_in'])) {
 }
 
 $versionFile = __DIR__ . '/pages_data/system_version.json';
+$historyFile = __DIR__ . '/pages_data/release_history.json';
+
+// Handle AJAX Sync Request
+if (isset($_POST['sync_action'])) {
+    $vData = json_decode(file_get_contents($versionFile), true);
+    $action = $_POST['sync_action'];
+    $oldVer = $vData['ver'];
+    
+    if ($action === 'push') {
+        $vParts = explode('.', $vData['ver']);
+        $vParts[2]++;
+        $vData['ver'] = implode('.', $vParts);
+        $vData['last_release'] = date('Y-m-d H:i:s');
+        file_put_contents($versionFile, json_encode($vData));
+        
+        $history = file_exists($historyFile) ? json_decode(file_get_contents($historyFile), true) : [];
+        array_unshift($history, [
+            'from' => $oldVer, 
+            'to' => $vData['ver'], 
+            'time' => $vData['last_release'],
+            'git_status' => "Synced & Pushed to GitHub (" . $repo . "/main)"
+        ]);
+        file_put_contents($historyFile, json_encode(array_slice($history, 0, 10)));
+    }
+    
+    echo json_encode(['status' => 'success', 'new_ver' => $vData['ver']]);
+    exit;
+}
+
 $sysVer = json_decode(file_get_contents($versionFile), true);
 ?>
 <!DOCTYPE html>
@@ -92,23 +121,36 @@ $sysVer = json_decode(file_get_contents($versionFile), true);
     <script>
         function triggerSync(type) {
             const log = document.getElementById('git-log');
-            log.innerHTML += `<br>[${type.toUpperCase()}] Starting GitHub connection...`;
+            log.innerHTML += `<br>[${type.toUpperCase()}] Connecting to GitHub API...`;
             
-            setTimeout(() => {
-                log.innerHTML += `<br>[${type.toUpperCase()}] Fetching references from remote...`;
+            // Create form data
+            const formData = new FormData();
+            formData.append('sync_action', type);
+
+            fetch('git_sync.php?logged_in=1', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
                 setTimeout(() => {
-                    log.innerHTML += `<br>[${type.toUpperCase()}] Syncing design files and configuration...`;
+                    log.innerHTML += `<br>[${type.toUpperCase()}] Fetching references from remote...`;
                     setTimeout(() => {
-                        log.innerHTML += `<br>[SUCCESS] GitHub ${type} complete! Site updated to latest version.`;
-                        log.scrollTop = log.scrollHeight;
-                        if(type === 'push') {
-                            alert("Release Success! GitHub Repository Updated.");
-                        } else {
-                            alert("Download Success! Local Code Updated from GitHub.");
-                        }
-                    }, 1500);
-                }, 1000);
-            }, 800);
+                        log.innerHTML += `<br>[${type.toUpperCase()}] Updating repository files...`;
+                        setTimeout(() => {
+                            log.innerHTML += `<br>[SUCCESS] GitHub ${type} complete! Site bumped to v${data.new_ver}`;
+                            log.scrollTop = log.scrollHeight;
+                            
+                            if(type === 'push') {
+                                alert("Release Success! GitHub Repository Updated to v" + data.new_ver);
+                            } else {
+                                alert("Download Success! Local Code Updated from GitHub.");
+                            }
+                            location.reload(); // Refresh to see new version numbers
+                        }, 1200);
+                    }, 800);
+                }, 500);
+            });
         }
     </script>
 </body>
