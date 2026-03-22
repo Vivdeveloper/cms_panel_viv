@@ -47,9 +47,11 @@ $canonical = cms_home_url();
     <link rel="stylesheet" href="<?php echo cms_escape(cms_url('public_style.css')); ?>">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
+        body { background: #050505; color: #fff; }
+        .dynamic-container { margin-top: 150px; padding: 20px; }
         .cms-draft-banner {
             position: fixed; top: 0; left: 0; right: 0; z-index: 99999;
-            background: #b45309; color: #fff; text-align: center; padding: 8px 12px;
+            background: #b45309; color: #fff; text-align: center; padding: 8px 8px;
             font-size: 13px; font-weight: 600;
         }
     </style>

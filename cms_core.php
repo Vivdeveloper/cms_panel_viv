@@ -4,12 +4,16 @@ session_start();
 require_once __DIR__ . '/config.php';
 
 $pagesDir = __DIR__ . '/pages_data/';
+$trashDir = $pagesDir . 'trash/';
 $usersDir = __DIR__ . '/users_data/';
 $versionFile = $pagesDir . 'system_version.json';
 $historyFile = $pagesDir . 'release_history.json';
 
 if (!is_dir($pagesDir)) {
     mkdir($pagesDir, 0755, true);
+}
+if (!is_dir($trashDir)) {
+    mkdir($trashDir, 0755, true);
 }
 if (!is_dir($usersDir)) {
     mkdir($usersDir, 0755, true);
@@ -124,18 +128,97 @@ function cms_sanitize_slug($str) {
     return trim($str, '-');
 }
 
-// --- POST: delete page ---
+/** Basename only; must be a JSON file inside trash (no path segments). */
+function cms_is_safe_trash_basename($name) {
+    if (!is_string($name) || $name === '' || strpos($name, "\0") !== false) {
+        return false;
+    }
+    if (basename($name) !== $name) {
+        return false;
+    }
+    return (bool) preg_match('/^[a-z0-9][a-z0-9._-]*\.json$/', $name);
+}
+
+// --- POST: move page to trash ---
 if (isset($_POST['post_delete_page'])) {
     checkAdmin();
     if (!cms_verify_csrf_post()) {
         header('Location: admin.php?err=csrf');
         exit;
     }
+    global $trashDir;
     $slug = cms_sanitize_slug($_POST['delete_slug'] ?? '');
-    if ($slug !== '' && file_exists($pagesDir . $slug . '.json')) {
-        unlink($pagesDir . $slug . '.json');
+    $src = $pagesDir . $slug . '.json';
+    if ($slug !== '' && is_file($src)) {
+        if (!is_dir($trashDir)) {
+            mkdir($trashDir, 0755, true);
+        }
+        $dest = $trashDir . $slug . '.json';
+        if (is_file($dest)) {
+            $dest = $trashDir . $slug . '.' . gmdate('YmdHis') . '.' . bin2hex(random_bytes(3)) . '.json';
+        }
+        rename($src, $dest);
     }
-    header('Location: admin.php?deleted=1');
+    header('Location: admin.php?trashed=1');
+    exit;
+}
+
+// --- POST: restore page from trash ---
+if (isset($_POST['post_restore_page'])) {
+    checkAdmin();
+    if (!cms_verify_csrf_post()) {
+        header('Location: admin.php?tab=trash&err=csrf');
+        exit;
+    }
+    global $trashDir;
+    $basename = basename((string) ($_POST['trash_file'] ?? ''));
+    if (!cms_is_safe_trash_basename($basename)) {
+        header('Location: admin.php?tab=trash');
+        exit;
+    }
+    $src = $trashDir . $basename;
+    if (!is_file($src)) {
+        header('Location: admin.php?tab=trash');
+        exit;
+    }
+    $content = json_decode((string) file_get_contents($src), true);
+    if (!is_array($content)) {
+        header('Location: admin.php?tab=trash');
+        exit;
+    }
+    $slug = cms_sanitize_slug($content['slug'] ?? '');
+    if ($slug === '') {
+        header('Location: admin.php?tab=trash');
+        exit;
+    }
+    $dest = $pagesDir . $slug . '.json';
+    if (is_file($dest)) {
+        header('Location: admin.php?tab=trash&err=restore_slug_exists');
+        exit;
+    }
+    $content['slug'] = $slug;
+    file_put_contents($src, json_encode($content));
+    rename($src, $dest);
+    header('Location: admin.php?tab=trash&restored=1');
+    exit;
+}
+
+// --- POST: permanently delete page from trash ---
+if (isset($_POST['post_permanent_delete_page'])) {
+    checkAdmin();
+    if (!cms_verify_csrf_post()) {
+        header('Location: admin.php?tab=trash&err=csrf');
+        exit;
+    }
+    global $trashDir;
+    $basename = basename((string) ($_POST['trash_file'] ?? ''));
+    if (cms_is_safe_trash_basename($basename)) {
+        $path = $trashDir . $basename;
+        if (is_file($path)) {
+            unlink($path);
+        }
+    }
+    header('Location: admin.php?tab=trash&permanently_deleted=1');
     exit;
 }
 
@@ -143,28 +226,59 @@ if (isset($_POST['post_delete_page'])) {
 if (isset($_POST['save_site_settings'])) {
     checkAdmin();
     if (!cms_verify_csrf_post()) {
-        header('Location: admin.php?tab=config&err=csrf');
+        header('Location: admin.php?tab=settings&err=csrf');
         exit;
     }
     cms_save_site_settings($_POST);
-    header('Location: admin.php?tab=config&settings_saved=1');
+    header('Location: admin.php?tab=settings&settings_saved=1');
+    exit;
+}
+
+if (isset($_POST['save_contact_cta'])) {
+    checkAdmin();
+    if (!cms_verify_csrf_post()) {
+        header('Location: admin.php?tab=contact&err=csrf');
+        exit;
+    }
+    $enCall = isset($_POST['cta_enable_call']) && $_POST['cta_enable_call'] === '1';
+    $enWa   = isset($_POST['cta_enable_whatsapp']) && $_POST['cta_enable_whatsapp'] === '1';
+    if (!$enCall && !$enWa) {
+        header('Location: admin.php?tab=contact&err=cta_none');
+        exit;
+    }
+    $layout = (string) ($_POST['sticky_cta_layout'] ?? 'split');
+    $layout = ($layout === 'full') ? 'full' : 'split';
+    cms_save_contact_settings(
+        $_POST['contact_phone'] ?? '',
+        $_POST['contact_whatsapp'] ?? '',
+        $layout,
+        [
+            'cta_enable_call'     => $enCall,
+            'cta_enable_whatsapp' => $enWa,
+            'cta_sticky_desktop'  => isset($_POST['cta_sticky_desktop']) && $_POST['cta_sticky_desktop'] === '1',
+            'cta_call_color'      => (string) ($_POST['cta_call_color'] ?? ''),
+            'cta_call_color2'     => (string) ($_POST['cta_call_color2'] ?? ''),
+            'cta_call_label'      => (string) ($_POST['cta_call_label'] ?? ''),
+        ]
+    );
+    header('Location: admin.php?tab=contact&contact_saved=1');
     exit;
 }
 
 if (isset($_POST['change_admin_password'])) {
     checkAdmin();
     if (!cms_verify_csrf_post()) {
-        header('Location: admin.php?tab=config&err=csrf');
+        header('Location: admin.php?tab=users&err=csrf');
         exit;
     }
     $a = (string) ($_POST['new_admin_password'] ?? '');
     $b = (string) ($_POST['new_admin_password_confirm'] ?? '');
     if (strlen($a) < 8 || $a !== $b) {
-        header('Location: admin.php?tab=config&pwd_err=1');
+        header('Location: admin.php?tab=users&pwd_err=1');
         exit;
     }
     cms_set_admin_password($a);
-    header('Location: admin.php?tab=config&pwd_ok=1');
+    header('Location: admin.php?tab=users&pwd_ok=1');
     exit;
 }
 
@@ -269,10 +383,69 @@ if (isset($_POST['add_user'])) {
         exit;
     }
     $u = trim((string) ($_POST['username'] ?? ''));
+    $u = preg_replace('/[^a-zA-Z0-9._-]+/', '', $u);
     if ($u !== '') {
-        createUser($u, $_POST['role'] ?? 'Normal User');
+        createUser($u, cms_normalize_user_role($_POST['role'] ?? 'Normal User'));
+        header('Location: admin.php?tab=users&user=' . rawurlencode($u));
+        exit;
     }
     header('Location: admin.php?tab=users');
+    exit;
+}
+
+if (isset($_POST['update_user_role'])) {
+    checkAdmin();
+    if (!cms_verify_csrf_post()) {
+        header('Location: admin.php?tab=users&err=csrf');
+        exit;
+    }
+    $uname = preg_replace('/[^a-zA-Z0-9._-]+/', '', (string) ($_POST['edit_username'] ?? ''));
+    $newRole = cms_normalize_user_role($_POST['role'] ?? '');
+    global $usersDir;
+    $path = $usersDir . $uname . '.json';
+    if ($uname === '' || !is_file($path)) {
+        header('Location: admin.php?tab=users');
+        exit;
+    }
+    $current = json_decode((string) file_get_contents($path), true);
+    if (!is_array($current)) {
+        header('Location: admin.php?tab=users');
+        exit;
+    }
+    $wasAdmin = cms_user_role_is_administrator($current['role'] ?? '');
+    if ($wasAdmin && $newRole !== 'Administrator' && cms_count_administrators() <= 1) {
+        header('Location: admin.php?tab=users&user=' . rawurlencode($uname) . '&err=last_admin');
+        exit;
+    }
+    cms_update_user_role($uname, $newRole);
+    header('Location: admin.php?tab=users&user=' . rawurlencode($uname) . '&user_updated=1');
+    exit;
+}
+
+if (isset($_POST['delete_user'])) {
+    checkAdmin();
+    if (!cms_verify_csrf_post()) {
+        header('Location: admin.php?tab=users&err=csrf');
+        exit;
+    }
+    $uname = preg_replace('/[^a-zA-Z0-9._-]+/', '', (string) ($_POST['delete_username'] ?? ''));
+    if (strtolower($uname) === 'admin') {
+        header('Location: admin.php?tab=users&err=cannot_delete_admin');
+        exit;
+    }
+    global $usersDir;
+    $path = $usersDir . $uname . '.json';
+    if (!is_file($path)) {
+        header('Location: admin.php?tab=users');
+        exit;
+    }
+    $current = json_decode((string) file_get_contents($path), true);
+    if (is_array($current) && cms_user_role_is_administrator($current['role'] ?? '') && cms_count_administrators() <= 1) {
+        header('Location: admin.php?tab=users&err=last_admin');
+        exit;
+    }
+    cms_delete_user_file($uname);
+    header('Location: admin.php?tab=users&user_deleted=1');
     exit;
 }
 
@@ -293,6 +466,30 @@ function getAllCMSPages() {
     return $pages;
 }
 
+function getTrashedCMSPages() {
+    global $trashDir;
+    if (!is_dir($trashDir)) {
+        return [];
+    }
+    $files = glob($trashDir . '*.json');
+    if (!is_array($files)) {
+        return [];
+    }
+    $pages = [];
+    foreach ($files as $file) {
+        $content = json_decode((string) file_get_contents($file), true);
+        if (!is_array($content) || !isset($content['slug'])) {
+            continue;
+        }
+        $content['_trash_basename'] = basename($file);
+        $pages[] = $content;
+    }
+    usort($pages, function ($a, $b) {
+        return strcmp((string) ($b['updated'] ?? ''), (string) ($a['updated'] ?? ''));
+    });
+    return $pages;
+}
+
 function getCMSPage($slug) {
     global $pagesDir;
     $file = $pagesDir . $slug . '.json';
@@ -303,10 +500,77 @@ function getCMSPage($slug) {
 }
 
 // --- USER MANAGEMENT ---
+function cms_normalize_user_role($r) {
+    $r = trim((string) $r);
+    $legacy = [
+        'Admin'  => 'Administrator',
+        'Normal' => 'Normal User',
+    ];
+    if (isset($legacy[$r])) {
+        return $legacy[$r];
+    }
+    if ($r === 'Administrator' || $r === 'Normal User') {
+        return $r;
+    }
+    return 'Normal User';
+}
+
+function cms_user_role_is_administrator($role) {
+    return cms_normalize_user_role($role) === 'Administrator';
+}
+
+function cms_count_administrators() {
+    $n = 0;
+    foreach (getAllUsers() as $u) {
+        if (cms_user_role_is_administrator($u['role'] ?? '')) {
+            $n++;
+        }
+    }
+    return $n;
+}
+
+function cms_update_user_role($username, $role) {
+    global $usersDir;
+    $username = preg_replace('/[^a-zA-Z0-9._-]+/', '', (string) $username);
+    if ($username === '') {
+        return false;
+    }
+    $path = $usersDir . $username . '.json';
+    if (!is_file($path)) {
+        return false;
+    }
+    $data = json_decode((string) file_get_contents($path), true);
+    if (!is_array($data)) {
+        return false;
+    }
+    $data['username'] = $username;
+    $data['role']     = cms_normalize_user_role($role);
+    file_put_contents($path, json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+    return true;
+}
+
+function cms_delete_user_file($username) {
+    global $usersDir;
+    $username = preg_replace('/[^a-zA-Z0-9._-]+/', '', (string) $username);
+    if ($username === '' || strtolower($username) === 'admin') {
+        return false;
+    }
+    $path = $usersDir . $username . '.json';
+    if (is_file($path)) {
+        unlink($path);
+        return true;
+    }
+    return false;
+}
+
 function createUser($username, $role) {
     global $usersDir;
-    $userData = ['username' => $username, 'role' => $role, 'created' => date('Y-m-d')];
-    file_put_contents($usersDir . $username . '.json', json_encode($userData));
+    $userData = [
+        'username' => $username,
+        'role'     => cms_normalize_user_role($role),
+        'created'  => date('Y-m-d'),
+    ];
+    file_put_contents($usersDir . $username . '.json', json_encode($userData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
 }
 
 function getAllUsers() {
@@ -314,13 +578,30 @@ function getAllUsers() {
     $users = [];
     $files = glob($usersDir . '*.json');
     foreach ($files as $file) {
-        $users[] = json_decode(file_get_contents($file), true);
+        $row = json_decode((string) file_get_contents($file), true);
+        if (is_array($row) && isset($row['username'])) {
+            $users[] = $row;
+        }
     }
     return $users;
 }
 
+function cms_get_user($username) {
+    global $usersDir;
+    $username = preg_replace('/[^a-zA-Z0-9._-]+/', '', (string) $username);
+    if ($username === '') {
+        return null;
+    }
+    $path = $usersDir . $username . '.json';
+    if (!is_file($path)) {
+        return null;
+    }
+    $row = json_decode((string) file_get_contents($path), true);
+    return is_array($row) ? $row : null;
+}
+
 if (count(getAllUsers()) === 0) {
-    createUser('admin', 'Admin');
-    createUser('user1', 'Normal');
+    createUser('admin', 'Administrator');
+    createUser('user1', 'Normal User');
 }
 ?>

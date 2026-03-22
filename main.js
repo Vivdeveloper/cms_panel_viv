@@ -91,8 +91,9 @@ function togglePanel(show) {
 }
 
 function saveSettings() {
-    const repo = document.getElementById('repo-url').value;
-    alert(`GitHub Sync Started: \nRepo: ${repo}\nBranch: ${document.getElementById('branch-select').value}\nMode: PHP Flat-File Sync`);
+    const branchEl = document.getElementById('branch-select');
+    const branch = branchEl ? branchEl.value : 'main';
+    alert(`GitHub Sync Started:\nBranch: ${branch}\nMode: PHP Flat-File Sync`);
     togglePanel(false);
 }
 
@@ -139,10 +140,11 @@ function deployToFTP() {
 }
 
 function checkGithubPulse() {
-    const branch = document.getElementById('branch-select').value;
+    const branchEl = document.getElementById('branch-select');
+    const branch = branchEl ? branchEl.value : 'main';
     const statusText = document.getElementById('branch-status');
-    const repo = document.getElementById('repo-url').value;
-    
+    if (!statusText) return;
+
     statusText.textContent = `Pulsing GitHub for ${branch}...`;
     statusText.style.color = '#4facfe';
 
@@ -150,10 +152,66 @@ function checkGithubPulse() {
         const time = new Date().toLocaleTimeString();
         statusText.textContent = `Live: Branch ${branch} is Active (Synced at ${time})`;
         statusText.style.color = '#25D366';
-        console.log(`Dynamic update for ${repo}/${branch} completed.`);
+        console.log(`Dynamic update for ${branch} completed.`);
     }, 1200);
+}
+
+function setupPublicNav() {
+    const toggle = document.getElementById('nav-menu-toggle');
+    const drawer = document.getElementById('site-nav-drawer');
+    const overlay = document.getElementById('nav-drawer-overlay');
+    const closeBtn = document.getElementById('nav-drawer-close');
+    if (!toggle || !drawer || !overlay) {
+        return;
+    }
+
+    function setOpen(open) {
+        document.body.classList.toggle('nav-drawer-open', open);
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        drawer.classList.toggle('is-open', open);
+        overlay.classList.toggle('is-active', open);
+        overlay.setAttribute('aria-hidden', open ? 'false' : 'true');
+        if ('inert' in drawer) {
+            drawer.inert = !open;
+        }
+    }
+
+    toggle.addEventListener('click', () => {
+        setOpen(!drawer.classList.contains('is-open'));
+    });
+    overlay.addEventListener('click', () => setOpen(false));
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => setOpen(false));
+    }
+    drawer.querySelectorAll('a.nav-page-link').forEach((a) => {
+        a.addEventListener('click', () => setOpen(false));
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            setOpen(false);
+        }
+    });
+
+    window.addEventListener('resize', () => {
+        if (window.matchMedia('(min-width: 1024px)').matches) {
+            setOpen(false);
+        }
+    });
+
+    var sticky = document.querySelector('.nav-sticky-cta');
+    if (sticky) {
+        document.body.classList.add('has-sticky-cta');
+        if (sticky.getAttribute('data-sticky-desktop') === '1') {
+            document.body.classList.add('has-sticky-desktop');
+        }
+        if (sticky.classList.contains('nav-sticky-cta--full') || sticky.getAttribute('data-sticky-layout') === 'full') {
+            document.body.classList.add('has-sticky-layout-full');
+        }
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     setupBackground();
+    setupPublicNav();
 });

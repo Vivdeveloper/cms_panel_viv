@@ -61,7 +61,6 @@
             <div class="admin-card">
                 <span class="status-badge">Live Sync Active</span>
                 <h4>Branch Selection</h4>
-                <p style="font-size: 14px; color: #888; margin-bottom: 15px;">Remote: <strong><?php echo htmlspecialchars(cms_repo()); ?></strong></p>
                 <select class="admin-input" id="admin-branch">
                     <option value="main">main</option>
                     <option value="master">master</option>
@@ -77,16 +76,13 @@
 
     <script src="main.js"></script>
     <script>
-        // Sync Admin Dashboard fields with secret panel fields
-        document.getElementById('admin-branch').addEventListener('change', (e) => {
-            document.getElementById('branch-select').value = e.target.value;
-        });
-        document.getElementById('admin-ftp-host').addEventListener('input', (e) => {
-            document.getElementById('ftp-host').value = e.target.value;
-        });
-        document.getElementById('admin-ftp-user').addEventListener('input', (e) => {
-            document.getElementById('ftp-user').value = e.target.value;
-        });
+        (function () {
+            var ab = document.getElementById('admin-branch');
+            var bs = document.getElementById('branch-select');
+            if (ab && bs) {
+                ab.addEventListener('change', function (e) { bs.value = e.target.value; });
+            }
+        })();
     </script>
 </body>
 </html>

@@ -95,7 +95,8 @@ $sysVer = getSystemVersion();
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#1d2327">
     <title>Media ‹ Library — CMS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -136,6 +137,8 @@ $sysVer = getSystemVersion();
                 <a href="admin.php"><i class="fas fa-file-alt" aria-hidden="true"></i> Pages</a>
                 <a href="media_manager.php" class="current"><i class="fas fa-camera-retro" aria-hidden="true"></i> Media</a>
                 <a href="backup.php"><i class="fas fa-cloud-download-alt" aria-hidden="true"></i> Backup</a>
+                <a href="admin.php?tab=settings"><i class="fas fa-cog" aria-hidden="true"></i> Site settings</a>
+                <a href="admin.php?tab=contact"><i class="fas fa-phone-alt" aria-hidden="true"></i> Call now</a>
                 <a href="admin.php?tab=users"><i class="fas fa-users-cog" aria-hidden="true"></i> User Roles</a>
                 <a href="admin.php?tab=config"><i class="fas fa-server" aria-hidden="true"></i> Server Config</a>
                 <div class="menu-footer">

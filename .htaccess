@@ -9,5 +9,8 @@
     RewriteCond %{REQUEST_FILENAME} -d
     RewriteRule ^ - [L]
 
+    RewriteRule ^robots\.txt$ robots.php [L]
+    RewriteRule ^sitemap\.xml$ sitemap.php [L]
+
     RewriteRule ^([a-z0-9][a-z0-9\-]*)/?$ view.php?page=$1 [L,QSA]
 </IfModule>
