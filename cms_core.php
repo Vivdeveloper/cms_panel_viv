@@ -105,6 +105,29 @@ function cms_set_admin_password($plain) {
     file_put_contents($path, json_encode(['password_hash' => password_hash((string) $plain, PASSWORD_DEFAULT)], JSON_UNESCAPED_SLASHES));
 }
 
+/**
+ * Shared admin login / change-password rules.
+ *
+ * @return string|null Error key: short|long|weak
+ */
+function cms_admin_password_policy_error(string $plain): ?string {
+    $len = function_exists('mb_strlen') ? mb_strlen($plain, 'UTF-8') : strlen($plain);
+    if ($len < 8) {
+        return 'short';
+    }
+    if ($len > 256) {
+        return 'long';
+    }
+    if (!preg_match('/\pL/u', $plain)) {
+        return 'weak';
+    }
+    if (!preg_match('/\d/u', $plain)) {
+        return 'weak';
+    }
+
+    return null;
+}
+
 function cms_is_admin_preview() {
     return !empty($_SESSION['is_admin']);
 }
@@ -118,6 +141,112 @@ function cms_skip_page_json($basename) {
         'contact_submissions.json',
     ];
     return in_array($basename, $skip, true);
+}
+
+/**
+ * Basenames under pages_data that are CMS page JSON files (not system JSON).
+ *
+ * @return list<string>
+ */
+function cms_page_json_basenames(): array {
+    global $pagesDir;
+    $out = [];
+    foreach (glob($pagesDir . '*.json') ?: [] as $file) {
+        $bn = basename($file);
+        if (cms_skip_page_json($bn)) {
+            continue;
+        }
+        $content = json_decode((string) file_get_contents($file), true);
+        if (is_array($content) && isset($content['slug'])) {
+            $out[] = $bn;
+        }
+    }
+
+    return $out;
+}
+
+/**
+ * Write a full page record to pages_data/{slug}.json. If is_home is true, clears is_home on other page files.
+ */
+function cms_persist_page_record(array $pageData): void {
+    global $pagesDir;
+    $slug = isset($pageData['slug']) ? cms_sanitize_slug((string) $pageData['slug']) : '';
+    if ($slug === '') {
+        return;
+    }
+    $pageData['slug'] = $slug;
+
+    if (!empty($pageData['is_home'])) {
+        $files = glob($pagesDir . '*.json') ?: [];
+        foreach ($files as $f) {
+            if (cms_skip_page_json(basename($f))) {
+                continue;
+            }
+            $d = json_decode((string) file_get_contents($f), true);
+            if (!is_array($d)) {
+                continue;
+            }
+            if (($d['slug'] ?? '') === $slug) {
+                continue;
+            }
+            if (!empty($d['is_home'])) {
+                $d['is_home'] = false;
+                file_put_contents($f, json_encode($d));
+            }
+        }
+    }
+
+    file_put_contents($pagesDir . $slug . '.json', json_encode($pageData));
+}
+
+/**
+ * Normalize a loose import row (e.g. from XML) into a page record. Returns null if slug is invalid.
+ */
+function cms_normalize_page_import_assoc(array $row): ?array {
+    $slug = cms_sanitize_slug((string) ($row['slug'] ?? ''));
+    if ($slug === '') {
+        return null;
+    }
+    $title = trim((string) ($row['title'] ?? ''));
+    if ($title === '') {
+        $title = ucwords(str_replace('-', ' ', $slug));
+    }
+    $status = strtolower(trim((string) ($row['status'] ?? 'draft')));
+    $status = ($status === 'published') ? 'published' : 'draft';
+    $allowInMenu = true;
+    if (array_key_exists('allow_in_menu', $row)) {
+        $v = $row['allow_in_menu'];
+        if (is_bool($v)) {
+            $allowInMenu = $v;
+        } else {
+            $s = strtolower(trim((string) $v));
+            $allowInMenu = !in_array($s, ['0', 'false', 'no', 'off', ''], true);
+        }
+    }
+    $isHome = false;
+    if (array_key_exists('is_home', $row)) {
+        $v = $row['is_home'];
+        if (is_bool($v)) {
+            $isHome = $v;
+        } else {
+            $s = strtolower(trim((string) $v));
+            $isHome = in_array($s, ['1', 'true', 'yes', 'on'], true);
+        }
+    }
+
+    return [
+        'slug'             => $slug,
+        'title'            => $title,
+        'html'             => (string) ($row['html'] ?? ''),
+        'css'              => (string) ($row['css'] ?? ''),
+        'is_home'          => $isHome,
+        'allow_in_menu'    => $allowInMenu,
+        'status'           => $status,
+        'updated'          => date('Y-m-d H:i:s'),
+        'meta_description' => trim((string) ($row['meta_description'] ?? '')),
+        'og_image'         => trim((string) ($row['og_image'] ?? '')),
+        'page_template'    => cms_normalize_page_template((string) ($row['page_template'] ?? 'default')),
+    ];
 }
 
 /** @return 'default'|'full_width'|'canvas' */
@@ -472,9 +601,9 @@ if (isset($_POST['change_admin_password'])) {
         exit;
     }
     $a = (string) ($_POST['new_admin_password'] ?? '');
-    $b = (string) ($_POST['new_admin_password_confirm'] ?? '');
-    if (strlen($a) < 8 || $a !== $b) {
-        header('Location: admin.php?tab=users&pwd_err=1');
+    $policy = cms_admin_password_policy_error($a);
+    if ($policy !== null) {
+        header('Location: admin.php?tab=users&pwd_err=' . rawurlencode($policy));
         exit;
     }
     cms_set_admin_password($a);
@@ -584,22 +713,7 @@ if (isset($_POST['create_page'])) {
         'page_template'    => $pageTpl,
     ];
 
-    if ($isHome) {
-        $files = glob($pagesDir . '*.json');
-        foreach ($files as $f) {
-            if (cms_skip_page_json(basename($f))) {
-                continue;
-            }
-
-            $d = json_decode(file_get_contents($f), true);
-            if (isset($d['is_home']) && $d['is_home'] === true) {
-                $d['is_home'] = false;
-                file_put_contents($f, json_encode($d));
-            }
-        }
-    }
-
-    file_put_contents($pagesDir . $slug . '.json', json_encode($pageData));
+    cms_persist_page_record($pageData);
     bumpVersion('patch', "Update Design: $slug");
 
     header('Location: admin.php?edit=' . rawurlencode($slug) . '&saved=1');

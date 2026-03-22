@@ -260,8 +260,15 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                         break;
                     }
                 }
-                if (!empty($_GET['pwd_err'])): ?>
-                <div class="notice notice-error admin-main-notice"><p style="margin:0;">Passwords must match and be at least 8 characters.</p></div>
+                $pwdErrKey = isset($_GET['pwd_err']) ? (string) $_GET['pwd_err'] : '';
+                $pwdErrMsgs = [
+                    'short' => 'Password must be at least 8 characters.',
+                    'long'  => 'Password is too long (maximum 256 characters).',
+                    'weak'  => 'Password must include at least one letter and one number.',
+                ];
+                if ($pwdErrKey !== '' && isset($pwdErrMsgs[$pwdErrKey])):
+                ?>
+                <div class="notice notice-error admin-main-notice"><p style="margin:0;"><?php echo htmlspecialchars($pwdErrMsgs[$pwdErrKey]); ?></p></div>
                 <?php endif;
                 if (!empty($_GET['crm_locked'])): ?>
                 <div class="notice notice-warning admin-main-notice"><p style="margin:0;">That lead is already Call done. Only pending leads can change status here.</p></div>
@@ -1109,15 +1116,15 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                         </form>
                         <hr style="margin:24px 0;border:0;border-top:1px solid var(--rule-l)">
                         <p style="font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;margin:0 0 12px;color:var(--ink2);">Change admin password</p>
-                        <form method="post" autocomplete="off">
+                        <form method="post" autocomplete="off" class="admin-change-admin-password-form">
                             <input type="hidden" name="cms_csrf" value="<?php echo htmlspecialchars($csrf); ?>">
                             <div class="form-group">
                                 <label for="np1">New password</label>
-                                <input type="password" id="np1" name="new_admin_password" class="wp-input" minlength="8" required autocomplete="new-password">
-                            </div>
-                            <div class="form-group">
-                                <label for="np2">Confirm password</label>
-                                <input type="password" id="np2" name="new_admin_password_confirm" class="wp-input" minlength="8" required autocomplete="new-password">
+                                <div class="admin-pass-row">
+                                    <input type="password" id="np1" name="new_admin_password" class="wp-input admin-pass-input" minlength="8" maxlength="256" required autocomplete="new-password" aria-describedby="np1-hint">
+                                    <button type="button" class="admin-pass-toggle" id="np1-toggle" aria-label="Show password" aria-controls="np1" aria-pressed="false" title="Show password"><i class="fas fa-eye" aria-hidden="true"></i></button>
+                                </div>
+                                <p class="field-hint" id="np1-hint" style="margin-top:6px;">At least 8 characters, max 256, including at least one letter and one number.</p>
                             </div>
                             <button type="submit" name="change_admin_password" class="button button-primary">Update password</button>
                         </form>
@@ -1171,15 +1178,15 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                         <?php endif; ?>
                         <hr style="margin:24px 0;border:0;border-top:1px solid var(--rule-l)">
                         <p style="font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;margin:0 0 12px;color:var(--ink2);">Change admin password</p>
-                        <form method="post" autocomplete="off">
+                        <form method="post" autocomplete="off" class="admin-change-admin-password-form">
                             <input type="hidden" name="cms_csrf" value="<?php echo htmlspecialchars($csrf); ?>">
                             <div class="form-group">
                                 <label for="np1b">New password</label>
-                                <input type="password" id="np1b" name="new_admin_password" class="wp-input" minlength="8" required autocomplete="new-password">
-                            </div>
-                            <div class="form-group">
-                                <label for="np2b">Confirm password</label>
-                                <input type="password" id="np2b" name="new_admin_password_confirm" class="wp-input" minlength="8" required autocomplete="new-password">
+                                <div class="admin-pass-row">
+                                    <input type="password" id="np1b" name="new_admin_password" class="wp-input admin-pass-input" minlength="8" maxlength="256" required autocomplete="new-password" aria-describedby="np1b-hint">
+                                    <button type="button" class="admin-pass-toggle" id="np1b-toggle" aria-label="Show password" aria-controls="np1b" aria-pressed="false" title="Show password"><i class="fas fa-eye" aria-hidden="true"></i></button>
+                                </div>
+                                <p class="field-hint" id="np1b-hint" style="margin-top:6px;">At least 8 characters, max 256, including at least one letter and one number.</p>
                             </div>
                             <button type="submit" name="change_admin_password" class="button button-primary">Update password</button>
                         </form>
@@ -1294,6 +1301,62 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                 var qs = u.searchParams.toString();
                 window.history.replaceState({}, '', u.pathname + (qs ? '?' + qs : '') + u.hash);
             } catch (e3) {}
+        })();
+        (function () {
+            function bindPassToggle(btnId, inputId) {
+                var input = document.getElementById(inputId);
+                var btn = document.getElementById(btnId);
+                if (!input || !btn) return;
+                var icon = btn.querySelector('i');
+                btn.addEventListener('click', function () {
+                    var show = input.type === 'password';
+                    input.type = show ? 'text' : 'password';
+                    btn.setAttribute('aria-pressed', show ? 'true' : 'false');
+                    btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+                    btn.setAttribute('title', show ? 'Hide password' : 'Show password');
+                    if (icon) icon.className = show ? 'fas fa-eye-slash' : 'fas fa-eye';
+                });
+            }
+            bindPassToggle('np1-toggle', 'np1');
+            bindPassToggle('np1b-toggle', 'np1b');
+        })();
+        (function () {
+            function hasLetter(s) {
+                try {
+                    return /\p{L}/u.test(s);
+                } catch (e0) {
+                    return /[A-Za-z]/.test(s);
+                }
+            }
+            function hasDigit(s) {
+                return /\d/.test(s);
+            }
+            function validateNewAdminPassword(p1) {
+                if (p1.length < 8) return 'Password must be at least 8 characters.';
+                if (p1.length > 256) return 'Password is too long (maximum 256 characters).';
+                if (!hasLetter(p1) || !hasDigit(p1)) return 'Password must include at least one letter and one number.';
+                return '';
+            }
+            document.querySelectorAll('form.admin-change-admin-password-form').forEach(function (form) {
+                form.addEventListener('submit', function (ev) {
+                    var q1 = form.querySelector('[name="new_admin_password"]');
+                    if (!q1) return;
+                    var msg = validateNewAdminPassword(q1.value);
+                    if (msg) {
+                        ev.preventDefault();
+                        alert(msg);
+                    }
+                });
+            });
+        })();
+        (function () {
+            try {
+                var u = new URL(window.location.href);
+                if (!u.searchParams.has('pwd_err')) return;
+                u.searchParams.delete('pwd_err');
+                var qs = u.searchParams.toString();
+                window.history.replaceState({}, '', u.pathname + (qs ? '?' + qs : '') + u.hash);
+            } catch (e5) {}
         })();
         (function () {
             function bindMenuAllow(roleSel, fieldsetSel) {
