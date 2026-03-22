@@ -7,6 +7,8 @@ if (!isset($_SESSION['is_admin']) || $_SESSION['is_admin'] !== true) {
     exit;
 }
 
+$csrf = cms_csrf_token();
+
 $uploadDir = __DIR__ . '/uploads';
 $maxBytes = 8 * 1024 * 1024;
 $allowedExt = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'pdf', 'mp4', 'webm', 'mp3', 'zip'];
@@ -16,6 +18,10 @@ if (!is_dir($uploadDir)) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['media_file']) && is_uploaded_file($_FILES['media_file']['tmp_name'])) {
+    if (!cms_verify_csrf_post()) {
+        header('Location: media_manager.php?upload_err=1');
+        exit;
+    }
     $err = $_FILES['media_file']['error'] ?? UPLOAD_ERR_NO_FILE;
     if ($err === UPLOAD_ERR_OK) {
         $size = (int) $_FILES['media_file']['size'];
@@ -151,6 +157,7 @@ $sysVer = getSystemVersion();
                             <div class="media-page-title-block">
                                 <h1 class="screen-reader-text">Media library</h1>
                                 <form class="media-upload-form" method="post" enctype="multipart/form-data" id="media-upload-form">
+                                    <input type="hidden" name="cms_csrf" value="<?php echo htmlspecialchars($csrf); ?>">
                                     <input type="file" name="media_file" id="media_file" accept="image/*,.pdf,.zip,.mp4,.webm,.mp3,.svg" onchange="if(this.files.length)this.form.submit();">
                                     <label for="media_file" class="button button-primary page-title-action">Add media</label>
                                 </form>

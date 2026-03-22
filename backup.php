@@ -11,6 +11,7 @@ $sysVer   = getSystemVersion();
 $cmsRoot  = realpath(__DIR__);
 $msg      = '';
 $msgType  = '';
+$csrf     = cms_csrf_token();
 
 function addFolderToZip(ZipArchive $zip, string $folder, string $base): void {
     $handle = opendir($folder);
@@ -43,18 +44,27 @@ if (isset($_GET['dl_backup'])) {
 }
 
 // ── Delete a backup file ────────────────────────────────
-if (isset($_GET['del_backup'])) {
-    $file = basename($_GET['del_backup']);
-    $path = $cmsRoot . '/' . $file;
-    if (preg_match('/\.zip$/i', $file) && is_file($path)) {
-        @unlink($path);
-        $msg     = 'Deleted ' . $file;
-        $msgType = 'success';
+if (isset($_POST['del_backup'])) {
+    if (!cms_verify_csrf_post()) {
+        $msg     = 'Security check failed. Reload and try again.';
+        $msgType = 'error';
+    } else {
+        $file = basename((string) $_POST['del_backup']);
+        $path = $cmsRoot . '/' . $file;
+        if (preg_match('/\.zip$/i', $file) && is_file($path)) {
+            @unlink($path);
+            $msg     = 'Deleted ' . $file;
+            $msgType = 'success';
+        }
     }
 }
 
 // ── Export ──────────────────────────────────────────────
 if (isset($_POST['do_export'])) {
+    if (!cms_verify_csrf_post()) {
+        $msg     = 'Security check failed. Reload and try again.';
+        $msgType = 'error';
+    } else {
     $stamp   = date('Y-m-d_H-i-s');
     $zipName = 'backup_' . $stamp . '.zip';
     $tmpPath = sys_get_temp_dir() . '/' . $zipName;
@@ -73,10 +83,15 @@ if (isset($_POST['do_export'])) {
     }
     $msg     = 'Failed to create ZIP archive.';
     $msgType = 'error';
+    }
 }
 
 // ── Import ─────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['import_zip']) && is_uploaded_file($_FILES['import_zip']['tmp_name'])) {
+    if (!cms_verify_csrf_post()) {
+        $msg     = 'Security check failed. Reload and try again.';
+        $msgType = 'error';
+    } else {
     $err = $_FILES['import_zip']['error'] ?? UPLOAD_ERR_NO_FILE;
     $ext = strtolower(pathinfo($_FILES['import_zip']['name'], PATHINFO_EXTENSION));
 
@@ -121,6 +136,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['import_zip']) && is_
             $msg     = 'Could not open uploaded ZIP.';
             $msgType = 'error';
         }
+    }
     }
 }
 ?>
@@ -203,6 +219,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['import_zip']) && is_
                                         Download all project files and folders as a single <strong>.zip</strong> archive.
                                     </p>
                                     <form method="post">
+                                        <input type="hidden" name="cms_csrf" value="<?php echo htmlspecialchars($csrf); ?>">
                                         <button type="submit" name="do_export" class="button button-primary">
                                             <i class="fas fa-download" aria-hidden="true"></i> Download ZIP
                                         </button>
@@ -218,6 +235,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['import_zip']) && is_
                                         Upload a <strong>.zip</strong> file. All existing files will be removed and replaced with the ZIP contents.
                                     </p>
                                     <form method="post" enctype="multipart/form-data">
+                                        <input type="hidden" name="cms_csrf" value="<?php echo htmlspecialchars($csrf); ?>">
                                         <input type="file" name="import_zip" accept=".zip" required style="margin-bottom:10px;">
                                         <br>
                                         <button type="submit" class="button button-primary">
@@ -257,7 +275,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['import_zip']) && is_
                                             <td style="padding:10px 14px;color:var(--mid);"><?php echo date('Y-m-d H:i', $b['time']); ?></td>
                                             <td style="padding:10px 14px;text-align:right;">
                                                 <a href="?dl_backup=<?php echo urlencode($b['name']); ?>" style="color:var(--ink);font-weight:600;text-decoration:none;margin-right:12px;" title="Download"><i class="fas fa-download"></i></a>
-                                                <a href="?del_backup=<?php echo urlencode($b['name']); ?>" style="color:var(--red);font-weight:600;text-decoration:none;" title="Delete" onclick="return confirm('Delete this backup?')"><i class="fas fa-trash-alt"></i></a>
+                                                <form method="post" style="display:inline;margin:0;" onsubmit="return confirm('Delete this backup?');">
+                                                    <input type="hidden" name="cms_csrf" value="<?php echo htmlspecialchars($csrf); ?>">
+                                                    <input type="hidden" name="del_backup" value="<?php echo htmlspecialchars($b['name']); ?>">
+                                                    <button type="submit" style="background:none;border:none;padding:0;color:var(--red);font-weight:600;cursor:pointer;" title="Delete"><i class="fas fa-trash-alt"></i></button>
+                                                </form>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>

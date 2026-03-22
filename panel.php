@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - <?php echo $brand; ?></title>
+    <title>Admin Dashboard - <?php echo htmlspecialchars(cms_brand()); ?></title>
     <link rel="stylesheet" href="<?php echo cms_url('public_style.css'); ?>">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
@@ -61,7 +61,7 @@
             <div class="admin-card">
                 <span class="status-badge">Live Sync Active</span>
                 <h4>Branch Selection</h4>
-                <p style="font-size: 14px; color: #888; margin-bottom: 15px;">Remote: <strong><?php echo $repo; ?></strong></p>
+                <p style="font-size: 14px; color: #888; margin-bottom: 15px;">Remote: <strong><?php echo htmlspecialchars(cms_repo()); ?></strong></p>
                 <select class="admin-input" id="admin-branch">
                     <option value="main">main</option>
                     <option value="master">master</option>
@@ -72,7 +72,7 @@
             </div>
         </div>
         
-        <p style="margin-top: 40px; color: #555; font-size: 14px;">Hint: You can still open the secret quick-panel from any page by typing 12345.</p>
+        <p style="margin-top: 40px; color: #555; font-size: 14px;">Hint: You can open the secret quick-panel from any page with the same shortcut you use for the admin login.</p>
     </main>
 
     <script src="main.js"></script>

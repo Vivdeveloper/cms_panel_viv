@@ -1,0 +1,13 @@
+# CMS Panel — clean URLs for inner pages (/slug → view.php?page=slug)
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    # If the CMS lives in a subfolder, Apache usually sets the per-dir prefix automatically.
+    # If rewrites fail on your host, try uncommenting and setting RewriteBase to your folder path.
+    # RewriteBase /your-subfolder/
+
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    RewriteRule ^([a-z0-9][a-z0-9\-]*)/?$ view.php?page=$1 [L,QSA]
+</IfModule>
