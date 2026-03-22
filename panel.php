@@ -56,37 +56,19 @@
         <h1>Admin <span class="gradient-text">Dashboard</span></h1>
         <p class="subtitle">Full-screen management for your GitHub & FTP deployments.</p>
 
-        <div class="admin-grid">
+        <div class="admin-grid" style="grid-template-columns: 1fr; max-width: 600px; margin: 30px auto;">
             <!-- GitHub Card -->
             <div class="admin-card">
-                <span class="status-badge">Connected</span>
-                <h4>GitHub Integration</h4>
-                <p style="font-size: 14px; color: #888; margin-bottom: 15px;">Target Repository: <strong><?php echo $repo; ?></strong></p>
+                <span class="status-badge">Live Sync Active</span>
+                <h4>Branch Selection</h4>
+                <p style="font-size: 14px; color: #888; margin-bottom: 15px;">Remote: <strong><?php echo $repo; ?></strong></p>
                 <select class="admin-input" id="admin-branch">
-                    <option>main</option>
-                    <option>master</option>
-                    <option>dev</option>
+                    <option value="main">main</option>
+                    <option value="master">master</option>
+                    <option value="dev">dev</option>
+                    <option value="staging">staging</option>
                 </select>
-                <button class="panel-btn" onclick="saveSettings()">Force Sync Branch</button>
-            </div>
-
-            <!-- FTP Card -->
-            <div class="admin-card">
-                <span class="status-badge">Ready</span>
-                <h4>FTP Continuous Deployment</h4>
-                <input type="text" class="admin-input" id="admin-ftp-host" placeholder="FTP Host (e.g. ftp.site.com)">
-                <input type="text" class="admin-input" id="admin-ftp-user" placeholder="FTP Username">
-                <button class="panel-btn" style="background: linear-gradient(45deg, #f093fb, #f5576c); color: #fff;" onclick="deployToFTP()">🚀 Live Update FTP</button>
-            </div>
-
-            <!-- Design Control -->
-            <div class="admin-card">
-                <span class="status-badge">Fast Sync</span>
-                <h4>Design Controls</h4>
-                <p style="font-size: 14px; color: #888; margin-bottom: 20px;">Download your current design files (.php) for local editing.</p>
-                <button class="panel-btn" onclick="downloadProject('zip')" style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1);">
-                    Download Project ZIP
-                </button>
+                <button class="panel-btn" onclick="saveSettings()">Apply Dynamic Update</button>
             </div>
         </div>
         

@@ -6,20 +6,24 @@ $repo = "Vivdeveloper/cms_panel_viv";
 $brand = "creativ3.co";
 
 function getHeader($title) {
-    global $brand, $whatsapp;
+    global $brand, $whatsapp, $phone;
     ?>
     <nav class="glass-nav">
         <a href="index.php" class="logo"><?php echo $brand; ?></a>
         <div class="nav-links">
             <a href="index.php">Home</a>
-            <a href="services.php">Services</a>
-            <a href="about.php">About</a>
-            <a href="contact.php">Contact</a>
-            <a href="panel.php" style="color: #4facfe;">Admin</a>
+            <?php 
+            include_once 'cms_core.php';
+            $allPages = getAllCMSPages();
+            foreach ($allPages as $p): 
+                if ($p['is_home'] ?? false) continue;
+            ?>
+                <a href="view.php?page=<?php echo $p['slug']; ?>"><?php echo ucwords(str_replace('-', ' ', $p['slug'])); ?></a>
+            <?php endforeach; ?>
         </div>
-        <div class="contact-info">
-            <a href="tel:<?php echo $whatsapp; ?>" class="contact-btn">Call: <?php echo $whatsapp; ?></a>
-            <a href="https://wa.me/91<?php echo $whatsapp; ?>" class="contact-btn whatsapp">WhatsApp</a>
+        <div class="contact-btn">
+            <span class="call-btn">Call: <?php echo $phone; ?></span>
+            <a href="https://wa.me/<?php echo $whatsapp; ?>" class="whatsapp-btn">WhatsApp</a>
         </div>
     </nav>
     <?php
@@ -35,39 +39,23 @@ function getPanel() {
             <label style="display: block; color: #aaa; font-size: 14px;">PHP-Driven GitHub Sync (Flat-File)</label>
             <input type="text" id="repo-url" class="panel-input" value="<?php echo $repo; ?>">
         </div>
-        <div style="margin-bottom: 15px;">
-            <label style="display: block; color: #aaa; font-size: 14px;">Select Branch</label>
+        <div style="margin-bottom: 20px;">
+            <label style="display: block; color: #aaa; font-size: 14px;">Select Dynamic Branch</label>
             <select id="branch-select" class="panel-select">
                 <option value="main">main</option>
                 <option value="master">master</option>
                 <option value="dev">dev</option>
+                <option value="staging">staging</option>
             </select>
+            <div id="branch-status" style="font-size: 11px; color: #4facfe; margin-top: 5px;">GitHub Dynamic Sync Integrated</div>
         </div>
-        <div style="margin-bottom: 20px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
-            <label style="display: block; color: #4facfe; font-size: 13px; font-weight: 700; margin-bottom: 12px;">FTP / Remote Deployment</label>
-            <input type="text" id="ftp-host" class="panel-input" placeholder="ftp.yourdomain.com" style="margin-bottom: 10px; font-size: 13px;">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
-                <input type="text" id="ftp-user" class="panel-input" placeholder="FTP Username" style="font-size: 13px;">
-                <input type="password" id="ftp-pass" class="panel-input" placeholder="FTP Password" style="font-size: 13px;">
-            </div>
-            <button class="panel-btn" onclick="deployToFTP()" style="background: linear-gradient(45deg, #f093fb, #f5576c); color: #fff;">
-                🚀 Deploy to FTP
-            </button>
+        <button class="panel-btn" onclick="saveSettings()">Apply Dynamic Update</button>
+        <div style="margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px; text-align: center;">
+            <a href="admin.php" style="color: #00f2fe; font-size: 14px; text-decoration: none; font-weight: 700;">✨ Professional Admin Dashboard</a>
         </div>
-
-        <div style="margin-bottom: 20px;">
-            <label style="display: block; color: #4facfe; font-size: 14px; font-weight: 700; margin-bottom: 10px;">Export & GitHub Sync</label>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                <button class="panel-btn" onclick="downloadProject('zip')" style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1);">
-                    Download ZIP
-                </button>
-                <button class="panel-btn" onclick="downloadProject('sync')" style="background: rgba(0,242,254,0.1); color: #00f2fe; border: 1px solid rgba(0,242,254,0.2);">
-                    Push to Branch
-                </button>
-            </div>
+        <div style="margin-top: 5px; text-align: center;">
+            <a href="panel.php" style="color: #4facfe; font-size: 13px; text-decoration: none; font-weight: 500;">Open Private Full-Screen Dashboard →</a>
         </div>
-
-        <button class="panel-btn" onclick="saveSettings()">Save & Refresh Panel</button>
         <p style="font-size: 11px; color: #444; margin-top: 15px; text-align: center;">Continuous Deployment: Active</p>
     </div>
 <?php

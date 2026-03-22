@@ -13,25 +13,30 @@
     <?php getPanel(); ?>
     <?php getHeader('Home'); ?>
 
-    <main class="section">
-        <h1><span class="gradient-text">Future-Ready</span><br>Web Design & SEO</h1>
-        <p class="subtitle">Experience the power of immersive 3D and no-SQL PHP backend architecture.</p>
-        
-        <div class="grid">
-            <div class="card">
-                <h3>3D Immersive</h3>
-                <p>Interactive WebGL environments delivered via fast PHP server-side rendering.</p>
+    <?php
+    // CMS Dynamic Home Overload
+    include 'cms_core.php';
+    $pages = getAllCMSPages();
+    $homePage = null;
+    foreach ($pages as $p) { if ($p['is_home'] ?? false) { $homePage = $p; break; } }
+
+    if ($homePage): ?>
+        <style><?php echo $homePage['css']; ?></style>
+        <main class="dynamic-container section">
+            <?php echo $homePage['html']; ?>
+        </main>
+    <?php else: ?>
+        <main class="section" style="text-align:center; padding-top:100px;">
+            <div style="background:rgba(255,255,255,0.03); border:1px dashed rgba(255,255,255,0.1); padding: 50px; border-radius: 20px; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #4facfe; margin-bottom: 15px;">Dafult design page not found</h2>
+                <p style="color: #666; font-size: 16px;">Please select your dynamic design from the Admin Panel and mark it as 'Home'.</p>
+                <div style="margin-top:25px;">
+                    <a href="admin.php" style="background: #4facfe; color: black; padding: 12px 25px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size:14px;">Open Admin Panel</a>
+                </div>
             </div>
-            <div class="card">
-                <h3>PHP SEO</h3>
-                <p>Data-driven server-side optimization to outrank the competition.</p>
-            </div>
-            <div class="card">
-                <h3>Speed & Scale</h3>
-                <p>Flat-file storage and GitHub CI/CD integration for unmatched performance.</p>
-            </div>
-        </div>
-    </main>
+        </main>
+    <?php endif; ?>
+
     <script src="main.js"></script>
 </body>
 </html>

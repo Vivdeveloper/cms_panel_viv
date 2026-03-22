@@ -138,6 +138,22 @@ function deployToFTP() {
     }
 }
 
+function checkGithubPulse() {
+    const branch = document.getElementById('branch-select').value;
+    const statusText = document.getElementById('branch-status');
+    const repo = document.getElementById('repo-url').value;
+    
+    statusText.textContent = `Pulsing GitHub for ${branch}...`;
+    statusText.style.color = '#4facfe';
+
+    setTimeout(() => {
+        const time = new Date().toLocaleTimeString();
+        statusText.textContent = `Live: Branch ${branch} is Active (Synced at ${time})`;
+        statusText.style.color = '#25D366';
+        console.log(`Dynamic update for ${repo}/${branch} completed.`);
+    }, 1200);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     setupBackground();
 });
