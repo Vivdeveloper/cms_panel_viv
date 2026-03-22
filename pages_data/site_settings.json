@@ -1,18 +1,18 @@
 {
-    "brand": "creativ3.co",
-    "phone": "9987842957",
-    "whatsapp": "9987842957",
+    "brand": "Viek",
     "default_lang": "en",
-    "site_tagline": "",
+    "site_tagline": "sfrfe",
     "default_og_image": "",
     "robots_extra": "",
     "analytics_head_html": "",
     "maintenance_mode": false,
+    "phone": "123",
+    "whatsapp": "9987842957",
     "sticky_cta_layout": "split",
     "cta_enable_call": true,
     "cta_enable_whatsapp": false,
-    "cta_sticky_desktop": true,
+    "cta_sticky_desktop": false,
     "cta_call_color": "#00944f",
     "cta_call_color2": "#1eae49",
-    "cta_call_label": "Call 9987842957"
+    "cta_call_label": "Call 13"
 }

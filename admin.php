@@ -267,7 +267,7 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                 <div id="users-panel" class="wp-panel <?php echo $mainTab === 'users' ? 'active' : ''; ?>">
                     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
                         <span style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--mid);">All Users</span>
-                        <a href="admin.php?tab=users" class="button<?php echo ($mainTab === 'users' && $userCompose) ? ' button-primary' : ''; ?>" style="height:26px;font-size:11px;padding:0 10px;">+ New</a>
+                        <a href="admin.php?tab=users&amp;user=new" class="button<?php echo ($mainTab === 'users' && $userCompose && ($userQuery === '' || $userQuery === 'new')) ? ' button-primary' : ''; ?>" style="height:26px;font-size:11px;padding:0 10px;">+ New</a>
                     </div>
                     <div class="pages-list">
                         <?php foreach ($allUsers as $u):
@@ -275,7 +275,7 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                             $norm  = cms_normalize_user_role($u['role'] ?? '');
                             $isActive = $editUserData && ($editUserData['username'] ?? '') === $uname;
                         ?>
-                        <a href="admin.php?tab=users&amp;user=<?php echo urlencode($uname); ?>" class="pages-list-item <?php echo $isActive ? 'is-active' : ''; ?>">
+                        <a href="admin.php?tab=users&amp;user=<?php echo urlencode($uname); ?>" class="pages-list-item <?php echo $isActive ? 'is-active' : ''; ?>" aria-label="Edit user <?php echo htmlspecialchars($uname); ?>">
                             <div class="pages-list-title">
                                 <?php echo htmlspecialchars($uname); ?>
                                 <?php if (strtolower($uname) === 'admin'): ?><span class="status-badge">Primary</span><?php endif; ?>
@@ -286,6 +286,7 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                                 <?php if (!empty($u['created'])): ?>&middot; <?php echo htmlspecialchars($u['created']); ?><?php endif; ?>
                             </div>
                             <div class="pages-list-actions">
+                                <span class="user-list-edit-hint">Edit</span>
                                 <?php if (strtolower($uname) !== 'admin'): ?>
                                 <form method="post" action="admin.php" style="display:inline;margin:0;" onclick="event.stopPropagation();" onsubmit="return confirm('Remove user &quot;<?php echo htmlspecialchars($uname, ENT_QUOTES); ?>&quot;?');">
                                     <input type="hidden" name="cms_csrf" value="<?php echo htmlspecialchars($csrf); ?>">
@@ -391,14 +392,14 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                                     <p class="description" style="margin-top:6px;">Shown on buttons; digits are used for the <code>tel:</code> link.</p>
                                 </div>
                                 <div class="form-group">
-                                    <label for="contact_whatsapp">WhatsApp number</label>
-                                    <input type="text" id="contact_whatsapp" name="contact_whatsapp" class="wp-input" value="<?php echo htmlspecialchars($ct['whatsapp'] ?? ''); ?>" placeholder="Country code + number, no + required" inputmode="numeric" autocomplete="tel">
-                                    <p class="description" style="margin-top:6px;">Use the same number you use in WhatsApp (with country code). Non-digits are stripped for the chat link.</p>
-                                </div>
-                                <div class="form-group">
                                     <label for="cta_call_label">Call button text</label>
                                     <input type="text" id="cta_call_label" name="cta_call_label" class="wp-input" maxlength="32" value="<?php echo htmlspecialchars($ctaCallLabel, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Call" autocomplete="off">
                                     <p class="description" style="margin-top:6px;">Label on the public Call button (header, mobile menu, bottom bar). Up to 32 characters.</p>
+                                </div>
+                                <div class="form-group">
+                                    <label for="contact_whatsapp">WhatsApp number</label>
+                                    <input type="text" id="contact_whatsapp" name="contact_whatsapp" class="wp-input" value="<?php echo htmlspecialchars($ct['whatsapp'] ?? ''); ?>" placeholder="Country code + number, no + required" inputmode="numeric" autocomplete="tel">
+                                    <p class="description" style="margin-top:6px;">Use the same number you use in WhatsApp (with country code). Non-digits are stripped for the chat link.</p>
                                 </div>
                                 <div class="form-group">
                                     <span class="label-like" style="display:block;font-weight:600;margin-bottom:8px;font-size:13px;">Call button colors</span>
@@ -654,6 +655,24 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                 split.classList.add('mobile-show-users-tabs');
             }
         }
+        function syncMobilePeTabButtonsFromSplit(split) {
+            if (!split) return;
+            var v = split.getAttribute('data-pe-view') || 'list';
+            document.querySelectorAll('.mobile-pe-tabs--pages [data-pe-tab]').forEach(function (b) {
+                var on = b.getAttribute('data-pe-tab') === v;
+                b.classList.toggle('is-active', on);
+                b.setAttribute('aria-selected', on ? 'true' : 'false');
+            });
+        }
+        function syncMobileUeTabButtonsFromSplit(split) {
+            if (!split) return;
+            var v = split.getAttribute('data-ue-view') || 'list';
+            document.querySelectorAll('.mobile-pe-tabs--users [data-ue-tab]').forEach(function (b) {
+                var on = b.getAttribute('data-ue-tab') === v;
+                b.classList.toggle('is-active', on);
+                b.setAttribute('aria-selected', on ? 'true' : 'false');
+            });
+        }
         function applyEditorDisplayForMainTab(id) {
             var editor = document.getElementById('editor-bar');
             var userEditor = document.getElementById('user-edit-bar');
@@ -691,23 +710,25 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
             e.currentTarget.classList.add('current');
 
             syncMobileSplitStripClass(id);
+            var qs = new URLSearchParams(window.location.search);
             if (id === 'pages') {
                 var split = document.getElementById('wp-split-main');
-                if (split) split.setAttribute('data-pe-view', 'list');
-                document.querySelectorAll('.mobile-pe-tabs--pages [data-pe-tab]').forEach(function (b) {
-                    var on = b.getAttribute('data-pe-tab') === 'list';
-                    b.classList.toggle('is-active', on);
-                    b.setAttribute('aria-selected', on ? 'true' : 'false');
-                });
+                if (split) {
+                    if (!qs.get('edit')) {
+                        split.setAttribute('data-pe-view', 'list');
+                    }
+                    syncMobilePeTabButtonsFromSplit(split);
+                }
             }
             if (id === 'users') {
                 var splitU = document.getElementById('wp-split-main');
-                if (splitU) splitU.setAttribute('data-ue-view', 'list');
-                document.querySelectorAll('.mobile-pe-tabs--users [data-ue-tab]').forEach(function (b) {
-                    var on = b.getAttribute('data-ue-tab') === 'list';
-                    b.classList.toggle('is-active', on);
-                    b.setAttribute('aria-selected', on ? 'true' : 'false');
-                });
+                if (splitU) {
+                    var uParam = qs.get('user');
+                    if (!uParam || String(uParam).trim() === '') {
+                        splitU.setAttribute('data-ue-view', 'list');
+                    }
+                    syncMobileUeTabButtonsFromSplit(splitU);
+                }
             }
             applyEditorDisplayForMainTab(id);
         }
@@ -772,16 +793,43 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
             });
             document.addEventListener('keydown', function (e) {
                 if (e.key === 'Escape') { setOpen(false); }
-                if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-                    e.preventDefault();
-                    var btn = document.querySelector('#editor-bar form button[name="create_page"]');
-                    if (btn && document.getElementById('editor-bar').style.display !== 'none') btn.click();
-                }
             });
             var mq = window.matchMedia('(min-width: 783px)');
             function closeIfDesktop() { if (mq.matches) { setOpen(false); } }
             if (mq.addEventListener) { mq.addEventListener('change', closeIfDesktop); }
             else if (mq.addListener) { mq.addListener(closeIfDesktop); }
+        })();
+        (function () {
+            document.addEventListener('keydown', function (e) {
+                if (!(e.ctrlKey || e.metaKey) || String(e.key).toLowerCase() !== 's') return;
+                e.preventDefault();
+                function isShown(el) {
+                    if (!el) return false;
+                    return window.getComputedStyle(el).display !== 'none';
+                }
+                var st = document.getElementById('settings-panel');
+                if (st && st.classList.contains('active')) {
+                    var sb = st.querySelector('button[name="save_site_settings"]');
+                    if (sb) { sb.click(); return; }
+                }
+                var ct = document.getElementById('contact-panel');
+                if (ct && ct.classList.contains('active')) {
+                    var cb = ct.querySelector('button[name="save_contact_cta"]');
+                    if (cb) { cb.click(); return; }
+                }
+                var us = document.getElementById('users-panel');
+                var ueb = document.getElementById('user-edit-bar');
+                if (us && us.classList.contains('active') && isShown(ueb)) {
+                    var ub = ueb.querySelector('.edit-header button.button-primary[type="submit"]');
+                    if (ub) { ub.click(); return; }
+                }
+                var eb = document.getElementById('editor-bar');
+                var pg = document.getElementById('pages-panel');
+                if (pg && pg.classList.contains('active') && isShown(eb)) {
+                    var pb = eb.querySelector('button[name="create_page"]');
+                    if (pb) pb.click();
+                }
+            });
         })();
         (function () {
             var form = document.getElementById('page-editor-form');

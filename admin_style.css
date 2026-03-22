@@ -185,6 +185,7 @@ justify-content:center;
 }
 .pages-list-actions span{color:var(--accent);cursor:pointer}
 .pages-list-actions span:hover{text-decoration:underline}
+.pages-list-actions .user-list-edit-hint{font-weight:600}
 .pages-list-actions span.del{color:var(--red)}
 .page-status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;vertical-align:middle;margin-right:2px}
 .page-status-dot.is-published{background:var(--green)}
