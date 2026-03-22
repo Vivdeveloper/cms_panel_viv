@@ -1,6 +1,14 @@
-# CMS Panel — clean URLs for inner pages (/slug → view.php?page=slug)
+# CMS Panel — security & clean URLs
+
+Options -Indexes
+
+# Block direct access to data directories and sensitive files
 <IfModule mod_rewrite.c>
     RewriteEngine On
+
+    RewriteRule ^pages_data/ - [F,L]
+    RewriteRule ^users_data/ - [F,L]
+
     # If the CMS lives in a subfolder, Apache usually sets the per-dir prefix automatically.
     # If rewrites fail on your host, try uncommenting and setting RewriteBase to your folder path.
     # RewriteBase /your-subfolder/
@@ -14,3 +22,12 @@
 
     RewriteRule ^([a-z0-9][a-z0-9\-]*)/?$ view.php?page=$1 [L,QSA]
 </IfModule>
+
+<FilesMatch "\.(json)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Deny from all
+    </IfModule>
+</FilesMatch>

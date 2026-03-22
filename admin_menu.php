@@ -1,19 +1,29 @@
 <?php
 /**
- * Sidebar nav item definitions (keys match admin.php ?tab= values + media/backup).
+ * Sidebar nav item definitions (keys match cms_admin_menu_keys() in cms_core.php).
  */
 function cms_admin_nav_items() {
-    return [
-        ['key' => 'pages', 'href' => 'admin.php', 'icon' => 'fa-file-alt', 'label' => 'Pages'],
-        ['key' => 'trash', 'href' => 'admin.php?tab=trash', 'icon' => 'fa-trash-alt', 'label' => 'Trash'],
-        ['key' => 'media', 'href' => 'media_manager.php', 'icon' => 'fa-camera-retro', 'label' => 'Media'],
-        ['key' => 'backup', 'href' => 'backup.php', 'icon' => 'fa-cloud-download-alt', 'label' => 'Backup'],
-        ['key' => 'settings', 'href' => 'admin.php?tab=settings', 'icon' => 'fa-cog', 'label' => 'Site settings'],
-        ['key' => 'html_tags', 'href' => 'admin.php?tab=html_tags', 'icon' => 'fa-code', 'label' => 'HTML Tags'],
-        ['key' => 'contact', 'href' => 'admin.php?tab=contact', 'icon' => 'fa-phone-alt', 'label' => 'Call now'],
-        ['key' => 'users', 'href' => 'admin.php?tab=users', 'icon' => 'fa-users-cog', 'label' => 'User Roles'],
-        ['key' => 'config', 'href' => 'admin.php?tab=config', 'icon' => 'fa-server', 'label' => 'Server Config'],
+    static $defs = [
+        'pages'     => ['href' => 'admin.php', 'icon' => 'fa-file-alt', 'label' => 'Pages'],
+        'trash'     => ['href' => 'admin.php?tab=trash', 'icon' => 'fa-trash-alt', 'label' => 'Trash'],
+        'media'     => ['href' => 'media_manager.php', 'icon' => 'fa-camera-retro', 'label' => 'Media'],
+        'backup'    => ['href' => 'backup.php', 'icon' => 'fa-cloud-download-alt', 'label' => 'Backup'],
+        'settings'  => ['href' => 'admin.php?tab=settings', 'icon' => 'fa-cog', 'label' => 'Site settings'],
+        'html_tags' => ['href' => 'admin.php?tab=html_tags', 'icon' => 'fa-code', 'label' => 'HTML Tags'],
+        'contact'       => ['href' => 'admin.php?tab=contact', 'icon' => 'fa-phone-alt', 'label' => 'Call now'],
+        'contact_form'  => ['href' => 'admin.php?tab=contact_form', 'icon' => 'fa-envelope-open-text', 'label' => 'Contact form'],
+        'crm'           => ['href' => 'admin.php?tab=crm', 'icon' => 'fa-clipboard-list', 'label' => 'CRM'],
+        'users'         => ['href' => 'admin.php?tab=users', 'icon' => 'fa-users-cog', 'label' => 'User Roles'],
+        'config'    => ['href' => 'admin.php?tab=config', 'icon' => 'fa-server', 'label' => 'Server Config'],
     ];
+    $items = [];
+    foreach (cms_admin_menu_keys() as $key) {
+        if (!isset($defs[$key])) {
+            continue;
+        }
+        $items[] = ['key' => $key] + $defs[$key];
+    }
+    return $items;
 }
 
 /**

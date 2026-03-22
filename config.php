@@ -5,12 +5,18 @@ if (!defined('CMS_DATA_DIR')) {
     define('CMS_DATA_DIR', __DIR__ . '/pages_data/');
 }
 
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: SAMEORIGIN');
+header('Referrer-Policy: strict-origin-when-cross-origin');
+
+require_once __DIR__ . '/cms_contact_form.php';
+
 /** Fallback phone / WhatsApp when `site_settings.json` omits them (override in admin or JSON). */
 if (!defined('CMS_PUBLIC_PHONE')) {
-    define('CMS_PUBLIC_PHONE', '1234567890');
+    define('CMS_PUBLIC_PHONE', '9987842957');
 }
 if (!defined('CMS_PUBLIC_WHATSAPP')) {
-    define('CMS_PUBLIC_WHATSAPP', '+91 1234567890');
+    define('CMS_PUBLIC_WHATSAPP', '+91 9987842957');
 }
 
 /**
@@ -91,8 +97,8 @@ function getSiteSettings() {
     }
     $defaults = [
         'brand'               => 'SEO Website Designer',
-        'phone'               => '1234567890',
-        'whatsapp'            => '+91 1234567890',
+        'phone'               => '9987842957',
+        'whatsapp'            => '+91 9987842957',
         'default_lang'        => 'en',
         'site_tagline'        => '',
         'default_og_image'    => '',
@@ -109,6 +115,18 @@ function getSiteSettings() {
         'cta_call_color2'      => '#1e40af',
         'cta_call_label'       => 'Call',
         'header_logo_url'      => '',
+        'contact_form_to_email'   => '',
+        'contact_form_subject'    => 'New contact from {site}',
+        'contact_form_use_custom' => false,
+        'contact_form_fields'     => [],
+        'smtp_enabled'         => false,
+        'smtp_host'            => '',
+        'smtp_port'            => 587,
+        'smtp_encryption'      => 'tls',
+        'smtp_user'            => '',
+        'smtp_pass'            => '',
+        'smtp_from_email'      => '',
+        'smtp_from_name'       => '',
     ];
     $path = CMS_DATA_DIR . 'site_settings.json';
     if (!is_file($path)) {
@@ -126,6 +144,16 @@ function getSiteSettings() {
     $cache['cta_enable_call']     = !empty($cache['cta_enable_call']);
     $cache['cta_enable_whatsapp'] = !empty($cache['cta_enable_whatsapp']);
     $cache['cta_sticky_desktop']  = !empty($cache['cta_sticky_desktop']);
+    $cache['smtp_enabled'] = !empty($cache['smtp_enabled']);
+    $enc = strtolower(trim((string) ($cache['smtp_encryption'] ?? 'tls')));
+    $cache['smtp_encryption'] = in_array($enc, ['none', 'tls', 'ssl'], true) ? $enc : 'tls';
+    $cache['smtp_port'] = (int) ($cache['smtp_port'] ?? 587);
+    if ($cache['smtp_port'] <= 0 || $cache['smtp_port'] > 65535) {
+        $cache['smtp_port'] = 587;
+    }
+    $cache['contact_form_use_custom'] = !empty($cache['contact_form_use_custom']);
+    $cff = $cache['contact_form_fields'] ?? [];
+    $cache['contact_form_fields'] = is_array($cff) ? $cff : [];
     return $cache;
 }
 
@@ -151,6 +179,32 @@ function cms_phone_tel_digits() {
 function cms_whatsapp_digits() {
     $d = preg_replace('/\D+/', '', cms_whatsapp());
     return $d !== '' ? $d : preg_replace('/\D+/', '', CMS_PUBLIC_WHATSAPP);
+}
+
+/**
+ * WhatsApp chat URL with a pre-filled password-reset request (for "Forgot password?" on login).
+ * Empty string if no WhatsApp number is configured.
+ */
+function cms_whatsapp_password_reset_url() {
+    $digits = cms_whatsapp_digits();
+    if ($digits === '') {
+        return '';
+    }
+    $site = rtrim(cms_site_url(), '/');
+    $brand = trim(str_replace(["\r\n", "\r", "\n"], ' ', cms_brand()));
+    $lines = [
+        'Hello,',
+        '',
+        'I need help resetting my password for the CMS (' . $brand . ').',
+        '',
+        'Website: ' . $site,
+        'Username: ',
+        '',
+        'Thank you.',
+    ];
+    $text = implode("\n", $lines);
+
+    return 'https://wa.me/' . rawurlencode($digits) . '?text=' . rawurlencode($text);
 }
 
 function cms_default_lang() {
@@ -210,6 +264,23 @@ function cms_handle_header_logo_upload(array $file) {
     $ext = strtolower(pathinfo($orig, PATHINFO_EXTENSION));
     if (!in_array($ext, $allowed, true)) {
         return null;
+    }
+    $logoMimeMap = [
+        'jpg' => ['image/jpeg'], 'jpeg' => ['image/jpeg'],
+        'png' => ['image/png'], 'gif' => ['image/gif'],
+        'webp' => ['image/webp'], 'svg' => ['image/svg+xml'],
+    ];
+    $finfo = new finfo(FILEINFO_MIME_TYPE);
+    $detectedMime = $finfo->file($tmp);
+    $validMimes = $logoMimeMap[$ext] ?? [];
+    if ($detectedMime === false || ($validMimes !== [] && !in_array($detectedMime, $validMimes, true))) {
+        return null;
+    }
+    if ($ext === 'svg') {
+        $svgContent = file_get_contents($tmp);
+        if (preg_match('/<\s*script|on\w+\s*=|javascript\s*:/i', $svgContent)) {
+            return null;
+        }
     }
     $uploadDir = __DIR__ . '/uploads';
     if (!is_dir($uploadDir) && !mkdir($uploadDir, 0755, true)) {
@@ -274,6 +345,17 @@ function cms_save_site_settings(array $input) {
     $out['cta_call_color']       = cms_sanitize_hex_color($current['cta_call_color'] ?? '', '#1d4ed8');
     $out['cta_call_color2']      = cms_sanitize_hex_color($current['cta_call_color2'] ?? '', '#1e40af');
     $out['cta_call_label']       = cms_sanitize_cta_label($current['cta_call_label'] ?? '', 'Call');
+    $preserveContact = [
+        'contact_form_to_email', 'contact_form_subject',
+        'contact_form_use_custom', 'contact_form_fields',
+        'smtp_enabled', 'smtp_host', 'smtp_port', 'smtp_encryption', 'smtp_user', 'smtp_pass',
+        'smtp_from_email', 'smtp_from_name',
+    ];
+    foreach ($preserveContact as $pk) {
+        if (array_key_exists($pk, $current)) {
+            $out[$pk] = $current[$pk];
+        }
+    }
     if (!is_dir(CMS_DATA_DIR)) {
         mkdir(CMS_DATA_DIR, 0755, true);
     }
@@ -408,8 +490,10 @@ function cms_is_admin_area_request() {
         'admin.php',
         'media_manager.php',
         'backup.php',
+        'download_page.php',
         'hard_restore.php',
         'panel.php',
+        'crm_mark_call.php',
     ];
     return in_array($script, $adminScripts, true);
 }
@@ -419,6 +503,10 @@ function cms_public_should_show_maintenance() {
         return false;
     }
     if (cms_is_admin_area_request()) {
+        return false;
+    }
+    $script = basename((string) ($_SERVER['SCRIPT_FILENAME'] ?? $_SERVER['SCRIPT_NAME'] ?? ''));
+    if ($script === 'contact_submit.php') {
         return false;
     }
     return true;
@@ -507,7 +595,7 @@ function cms_render_seo_head(array $opts) {
         ],
     ];
     ?>
-    <script type="application/ld+json"><?php echo json_encode($jsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?></script>
+    <script type="application/ld+json"><?php echo json_encode($jsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG); ?></script>
     <?php
     $analytics = trim((string) (getSiteSettings()['analytics_head_html'] ?? ''));
     if ($analytics !== '') {

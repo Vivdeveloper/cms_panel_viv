@@ -1,4 +1,11 @@
 <?php
+session_set_cookie_params([
+    'lifetime' => 0,
+    'path'     => '/',
+    'httponly'  => true,
+    'secure'   => (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'),
+    'samesite' => 'Lax',
+]);
 session_start();
 
 require_once __DIR__ . '/config.php';
@@ -30,6 +37,45 @@ function cms_init_admin_secrets() {
     $hash = password_hash('12345', PASSWORD_DEFAULT);
     file_put_contents($path, json_encode(['password_hash' => $hash], JSON_UNESCAPED_SLASHES));
 }
+
+/* ── Login brute-force protection ─────────────────────────────── */
+
+function cms_login_attempts_file(): string {
+    $dir = __DIR__ . '/pages_data/login_rate/';
+    if (!is_dir($dir)) { mkdir($dir, 0755, true); }
+    return $dir . md5($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1') . '.json';
+}
+
+function cms_login_is_locked_out(): bool {
+    $f = cms_login_attempts_file();
+    if (!is_file($f)) return false;
+    $d = json_decode((string) file_get_contents($f), true);
+    if (!is_array($d)) return false;
+    $attempts = (int) ($d['attempts'] ?? 0);
+    $last     = (int) ($d['last'] ?? 0);
+    if ($attempts >= 5 && (time() - $last) < 900) return true;
+    if ((time() - $last) >= 900) { @unlink($f); return false; }
+    return false;
+}
+
+function cms_login_attempts_record(): void {
+    $f = cms_login_attempts_file();
+    $d = ['attempts' => 0, 'last' => 0];
+    if (is_file($f)) {
+        $j = json_decode((string) file_get_contents($f), true);
+        if (is_array($j)) $d = $j;
+    }
+    $d['attempts'] = ((int) ($d['attempts'] ?? 0)) + 1;
+    $d['last'] = time();
+    file_put_contents($f, json_encode($d));
+}
+
+function cms_login_attempts_reset(): void {
+    $f = cms_login_attempts_file();
+    if (is_file($f)) { @unlink($f); }
+}
+
+/* ── CSRF ────────────────────────────────────────────────────── */
 
 function cms_csrf_token() {
     if (empty($_SESSION['cms_csrf_token'])) {
@@ -69,6 +115,7 @@ function cms_skip_page_json($basename) {
         'release_history.json',
         'site_settings.json',
         'admin_secrets.json',
+        'contact_submissions.json',
     ];
     return in_array($basename, $skip, true);
 }
@@ -77,6 +124,26 @@ function cms_skip_page_json($basename) {
 function checkAdmin() {
     if (!isset($_SESSION['is_admin']) || $_SESSION['is_admin'] !== true) {
         header('Location: admin.php?error=unauthorized');
+        exit;
+    }
+}
+
+/**
+ * True if the signed-in user may create, edit, trash, restore, or permanently delete pages.
+ * Legacy sessions without cms_username are treated as full access.
+ */
+function cms_user_can_edit_pages(): bool {
+    $row = cms_current_user_record();
+    if ($row === null) {
+        return true;
+    }
+    return cms_user_role_is_administrator($row['role'] ?? '');
+}
+
+function cms_require_pages_write(): void {
+    checkAdmin();
+    if (!cms_user_can_edit_pages()) {
+        header('Location: admin.php?err=read_only');
         exit;
     }
 }
@@ -141,7 +208,7 @@ function cms_is_safe_trash_basename($name) {
 
 // --- POST: move page to trash ---
 if (isset($_POST['post_delete_page'])) {
-    checkAdmin();
+    cms_require_pages_write();
     if (!cms_verify_csrf_post()) {
         header('Location: admin.php?err=csrf');
         exit;
@@ -165,7 +232,7 @@ if (isset($_POST['post_delete_page'])) {
 
 // --- POST: restore page from trash ---
 if (isset($_POST['post_restore_page'])) {
-    checkAdmin();
+    cms_require_pages_write();
     if (!cms_verify_csrf_post()) {
         header('Location: admin.php?tab=trash&err=csrf');
         exit;
@@ -205,7 +272,7 @@ if (isset($_POST['post_restore_page'])) {
 
 // --- POST: permanently delete page from trash ---
 if (isset($_POST['post_permanent_delete_page'])) {
-    checkAdmin();
+    cms_require_pages_write();
     if (!cms_verify_csrf_post()) {
         header('Location: admin.php?tab=trash&err=csrf');
         exit;
@@ -291,6 +358,64 @@ if (isset($_POST['save_contact_cta'])) {
     exit;
 }
 
+if (isset($_POST['save_contact_form'])) {
+    checkAdmin();
+    if (!cms_verify_csrf_post()) {
+        header('Location: admin.php?tab=contact_form&err=csrf');
+        exit;
+    }
+    $cfFieldsErr = '';
+    cms_save_contact_form_settings($_POST, $cfFieldsErr);
+    if ($cfFieldsErr === 'invalid') {
+        header('Location: admin.php?tab=contact_form&contact_form_saved=1&contact_form_fields_err=1');
+        exit;
+    }
+    header('Location: admin.php?tab=contact_form&contact_form_saved=1');
+    exit;
+}
+
+if (isset($_POST['crm_manual_status'])) {
+    checkAdmin();
+    if (!cms_verify_csrf_post()) {
+        header('Location: admin.php?tab=crm&err=csrf');
+        exit;
+    }
+    $sid = (string) ($_POST['crm_submission_id'] ?? '');
+    $st = (string) ($_POST['crm_status'] ?? '');
+    $crmManualOk = cms_crm_update_submission_status($sid, $st, true);
+    $rf = (string) ($_POST['crm_return_filter'] ?? 'all');
+    $allowedF = array_merge(['all'], cms_crm_status_values());
+    if (!in_array($rf, $allowedF, true)) {
+        $rf = 'all';
+    }
+    if (in_array($rf, ['new', 'followup'], true)) {
+        $rf = 'pending';
+    }
+    $rq = trim((string) ($_POST['crm_return_q'] ?? ''));
+    if (function_exists('mb_substr')) {
+        $rq = mb_substr($rq, 0, 200, 'UTF-8');
+    } else {
+        $rq = substr($rq, 0, 200);
+    }
+    $rd = strtolower(trim((string) ($_POST['crm_return_date'] ?? 'all')));
+    if (!in_array($rd, ['all', 'today', 'custom'], true)) {
+        $rd = 'all';
+    }
+    $rdf = cms_crm_sanitize_date_ymd((string) ($_POST['crm_return_date_from'] ?? ''));
+    $rdt = cms_crm_sanitize_date_ymd((string) ($_POST['crm_return_date_to'] ?? ''));
+    $q = 'admin.php?tab=crm&crm_filter=' . rawurlencode($rf) . '&crm_q=' . rawurlencode($rq)
+        . '&crm_date=' . rawurlencode($rd)
+        . '&crm_from=' . rawurlencode($rdf)
+        . '&crm_to=' . rawurlencode($rdt);
+    if ($crmManualOk) {
+        $q .= '&crm_updated=1';
+    } else {
+        $q .= '&crm_locked=1';
+    }
+    header('Location: ' . $q);
+    exit;
+}
+
 if (isset($_POST['change_admin_password'])) {
     checkAdmin();
     if (!cms_verify_csrf_post()) {
@@ -321,7 +446,7 @@ if (isset($_POST['force_patch_release'])) {
 
 // --- PAGE ACTIONS ---
 if (isset($_POST['create_page'])) {
-    checkAdmin();
+    cms_require_pages_write();
     if (!cms_verify_csrf_post()) {
         header('Location: admin.php?err=csrf');
         exit;
@@ -411,7 +536,19 @@ if (isset($_POST['add_user'])) {
     $u = trim((string) ($_POST['username'] ?? ''));
     $u = preg_replace('/[^a-zA-Z0-9._-]+/', '', $u);
     if ($u !== '') {
-        createUser($u, cms_normalize_user_role($_POST['role'] ?? 'Normal User'));
+        $role = cms_normalize_user_role($_POST['role'] ?? 'Normal User');
+        $menuPost = isset($_POST['menu_allow']) && is_array($_POST['menu_allow']) ? $_POST['menu_allow'] : [];
+        $emailRaw = trim((string) ($_POST['user_email'] ?? ''));
+        if ($emailRaw !== '' && cms_sanitize_user_email($emailRaw) === '') {
+            header('Location: admin.php?tab=users&err=email_invalid');
+            exit;
+        }
+        $emailClean = cms_sanitize_user_email($emailRaw);
+        if ($emailClean !== '' && cms_user_email_taken($emailClean, $u)) {
+            header('Location: admin.php?tab=users&err=email_taken');
+            exit;
+        }
+        createUser($u, $role, cms_sanitize_menu_allow($menuPost), $emailClean);
         header('Location: admin.php?tab=users&user=' . rawurlencode($u));
         exit;
     }
@@ -443,7 +580,18 @@ if (isset($_POST['update_user_role'])) {
         header('Location: admin.php?tab=users&user=' . rawurlencode($uname) . '&err=last_admin');
         exit;
     }
-    cms_update_user_role($uname, $newRole);
+    $menuPost = isset($_POST['menu_allow']) && is_array($_POST['menu_allow']) ? $_POST['menu_allow'] : [];
+    $emailRaw = trim((string) ($_POST['user_email'] ?? ''));
+    if ($emailRaw !== '' && cms_sanitize_user_email($emailRaw) === '') {
+        header('Location: admin.php?tab=users&user=' . rawurlencode($uname) . '&err=email_invalid');
+        exit;
+    }
+    $emailClean = cms_sanitize_user_email($emailRaw);
+    if ($emailClean !== '' && cms_user_email_taken($emailClean, $uname)) {
+        header('Location: admin.php?tab=users&user=' . rawurlencode($uname) . '&err=email_taken');
+        exit;
+    }
+    cms_update_user_menu_allow($uname, $newRole, $menuPost, $emailClean);
     header('Location: admin.php?tab=users&user=' . rawurlencode($uname) . '&user_updated=1');
     exit;
 }
@@ -526,6 +674,69 @@ function getCMSPage($slug) {
 }
 
 // --- USER MANAGEMENT ---
+/** Keys for admin sidebar / tab access (keep in sync with admin_menu.php labels). */
+function cms_admin_menu_keys() {
+    return ['pages', 'trash', 'media', 'backup', 'settings', 'html_tags', 'contact', 'contact_form', 'crm', 'users', 'config'];
+}
+
+function cms_sanitize_menu_allow($raw) {
+    $keys = cms_admin_menu_keys();
+    $flip = array_flip($keys);
+    if (!is_array($raw)) {
+        return [];
+    }
+    $out = [];
+    foreach ($raw as $k) {
+        $k = (string) $k;
+        if (isset($flip[$k])) {
+            $out[$k] = true;
+        }
+    }
+    return array_values(array_keys($out));
+}
+
+/** Default sidebar items for Normal User when menu_allow is missing or empty. */
+function cms_default_menu_allow_normal() {
+    return ['pages', 'trash', 'media'];
+}
+
+function cms_session_username() {
+    $u = $_SESSION['cms_username'] ?? '';
+    return is_string($u) ? preg_replace('/[^a-zA-Z0-9._-]+/', '', $u) : '';
+}
+
+/** Logged-in CMS user row from users_data, or null (legacy session without username). */
+function cms_current_user_record() {
+    $name = cms_session_username();
+    if ($name === '') {
+        return null;
+    }
+    $row = cms_get_user($name);
+    return is_array($row) ? $row : null;
+}
+
+/**
+ * Which nav keys this user may see. Legacy sessions (no cms_username) get full menu.
+ */
+function cms_user_allowed_menu_keys(?array $user) {
+    if ($user === null) {
+        return cms_admin_menu_keys();
+    }
+    if (cms_user_role_is_administrator($user['role'] ?? '')) {
+        return cms_admin_menu_keys();
+    }
+    $allow = $user['menu_allow'] ?? null;
+    if (!is_array($allow) || $allow === []) {
+        return cms_default_menu_allow_normal();
+    }
+    $san = cms_sanitize_menu_allow($allow);
+    return $san !== [] ? $san : cms_default_menu_allow_normal();
+}
+
+function cms_user_may_access_menu_key(?array $user, string $key) {
+    return in_array($key, cms_user_allowed_menu_keys($user), true);
+}
+
 function cms_normalize_user_role($r) {
     $r = trim((string) $r);
     $legacy = [
@@ -575,6 +786,41 @@ function cms_update_user_role($username, $role) {
     return true;
 }
 
+/**
+ * Persist menu_allow for non-administrators; administrators get key removed (full access implied).
+ */
+function cms_update_user_menu_allow($username, $role, array $menuPost, string $emailClean = '') {
+    global $usersDir;
+    $username = preg_replace('/[^a-zA-Z0-9._-]+/', '', (string) $username);
+    if ($username === '') {
+        return false;
+    }
+    $path = $usersDir . $username . '.json';
+    if (!is_file($path)) {
+        return false;
+    }
+    $data = json_decode((string) file_get_contents($path), true);
+    if (!is_array($data)) {
+        return false;
+    }
+    $norm = cms_normalize_user_role($role);
+    if (cms_user_role_is_administrator($norm)) {
+        unset($data['menu_allow']);
+    } else {
+        $san = cms_sanitize_menu_allow($menuPost);
+        $data['menu_allow'] = $san !== [] ? $san : cms_default_menu_allow_normal();
+    }
+    if ($emailClean === '') {
+        unset($data['email']);
+    } else {
+        $data['email'] = $emailClean;
+    }
+    $data['username'] = $username;
+    $data['role']     = $norm;
+    file_put_contents($path, json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+    return true;
+}
+
 function cms_delete_user_file($username) {
     global $usersDir;
     $username = preg_replace('/[^a-zA-Z0-9._-]+/', '', (string) $username);
@@ -589,13 +835,21 @@ function cms_delete_user_file($username) {
     return false;
 }
 
-function createUser($username, $role) {
+function createUser($username, $role, array $menuAllowPost = [], string $emailClean = '') {
     global $usersDir;
+    $norm = cms_normalize_user_role($role);
     $userData = [
         'username' => $username,
-        'role'     => cms_normalize_user_role($role),
+        'role'     => $norm,
         'created'  => date('Y-m-d'),
     ];
+    if ($emailClean !== '') {
+        $userData['email'] = $emailClean;
+    }
+    if (!cms_user_role_is_administrator($norm)) {
+        $san = cms_sanitize_menu_allow($menuAllowPost);
+        $userData['menu_allow'] = $san !== [] ? $san : cms_default_menu_allow_normal();
+    }
     file_put_contents($usersDir . $username . '.json', json_encode($userData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
 }
 
@@ -623,6 +877,63 @@ function cms_get_user($username) {
         return null;
     }
     $row = json_decode((string) file_get_contents($path), true);
+    return is_array($row) ? $row : null;
+}
+
+/** Valid non-empty email, or empty string if invalid / empty input. */
+function cms_sanitize_user_email($raw) {
+    $s = trim((string) $raw);
+    if ($s === '' || strlen($s) > 254) {
+        return '';
+    }
+    return filter_var($s, FILTER_VALIDATE_EMAIL) ? $s : '';
+}
+
+/** True if $email (non-empty, normalized case) is already stored on another user. */
+function cms_user_email_taken(string $email, string $exceptUsername): bool {
+    $want = strtolower(trim($email));
+    if ($want === '') {
+        return false;
+    }
+    $ex = strtolower((string) $exceptUsername);
+    foreach (getAllUsers() as $u) {
+        $un = strtolower((string) ($u['username'] ?? ''));
+        $em = strtolower(trim((string) ($u['email'] ?? '')));
+        if ($em !== '' && $em === $want && $un !== $ex) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Resolve sign-in identifier: values containing @ match stored email (case-insensitive); otherwise username.
+ *
+ * @return array|null User row including username
+ */
+function cms_find_user_for_login(string $identifier): ?array {
+    $identifier = trim($identifier);
+    if ($identifier === '') {
+        return null;
+    }
+    if (strpos($identifier, '@') !== false) {
+        if (!filter_var($identifier, FILTER_VALIDATE_EMAIL)) {
+            return null;
+        }
+        $want = strtolower($identifier);
+        foreach (getAllUsers() as $u) {
+            $em = strtolower(trim((string) ($u['email'] ?? '')));
+            if ($em !== '' && $em === $want) {
+                return $u;
+            }
+        }
+        return null;
+    }
+    $u = preg_replace('/[^a-zA-Z0-9._-]+/', '', $identifier);
+    if ($u === '') {
+        return null;
+    }
+    $row = cms_get_user($u);
     return is_array($row) ? $row : null;
 }
 

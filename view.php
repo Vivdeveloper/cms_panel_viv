@@ -74,7 +74,8 @@ $canonical = cms_page_url($slug);
     <?php getHeader($title); ?>
 
     <main class="dynamic-container section">
-        <?php echo $page['html']; ?>
+        <?php echo cms_contact_flash_message_html(); ?>
+        <?php echo cms_apply_page_shortcodes($page['html'], cms_page_url($slug)); ?>
     </main>
 
     <?php cms_echo_site_html_snippet('inject_footer_html'); ?>

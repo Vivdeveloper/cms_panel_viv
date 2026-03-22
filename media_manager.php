@@ -7,6 +7,12 @@ if (!isset($_SESSION['is_admin']) || $_SESSION['is_admin'] !== true) {
     header("Location: admin.php");
     exit;
 }
+$menuUserRecord = cms_current_user_record();
+$allowedMenuKeys = cms_user_allowed_menu_keys($menuUserRecord);
+if (!cms_user_may_access_menu_key($menuUserRecord, 'media')) {
+    header('Location: admin.php?tab=' . rawurlencode($allowedMenuKeys[0] ?? 'pages'));
+    exit;
+}
 
 $csrf = cms_csrf_token();
 
@@ -28,7 +34,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['media_file']) && is_
         $size = (int) $_FILES['media_file']['size'];
         $orig = basename((string) $_FILES['media_file']['name']);
         $ext = strtolower(pathinfo($orig, PATHINFO_EXTENSION));
+        $mimeMap = [
+            'jpg' => ['image/jpeg'], 'jpeg' => ['image/jpeg'],
+            'png' => ['image/png'], 'gif' => ['image/gif'],
+            'webp' => ['image/webp'], 'svg' => ['image/svg+xml'],
+            'pdf' => ['application/pdf'],
+            'mp4' => ['video/mp4'], 'webm' => ['video/webm'],
+            'mp3' => ['audio/mpeg'], 'zip' => ['application/zip','application/x-zip-compressed'],
+        ];
         if ($size > 0 && $size <= $maxBytes && $ext !== '' && in_array($ext, $allowedExt, true)) {
+            $finfo = new finfo(FILEINFO_MIME_TYPE);
+            $detectedMime = $finfo->file($_FILES['media_file']['tmp_name']);
+            $validMimes = $mimeMap[$ext] ?? [];
+            if ($detectedMime === false || ($validMimes !== [] && !in_array($detectedMime, $validMimes, true))) {
+                header('Location: media_manager.php?upload_err=1');
+                exit;
+            }
+            if ($ext === 'svg') {
+                $svgContent = file_get_contents($_FILES['media_file']['tmp_name']);
+                if (preg_match('/<\s*script|on\w+\s*=|javascript\s*:/i', $svgContent)) {
+                    header('Location: media_manager.php?upload_err=1');
+                    exit;
+                }
+            }
+            if (preg_match('/\.php/i', $orig)) {
+                header('Location: media_manager.php?upload_err=1');
+                exit;
+            }
             $safe = preg_replace('/[^a-zA-Z0-9._-]+/', '_', pathinfo($orig, PATHINFO_FILENAME));
             $safe = trim($safe, '._-') ?: 'file';
             $destName = $safe . '_' . substr(sha1((string) microtime(true)), 0, 8) . '.' . $ext;
@@ -112,7 +144,8 @@ $sysVer = getSystemVersion();
                 <div class="wp-admin-bar-site">
                     <button type="button" class="wp-menu-toggle" id="wp-menu-toggle" aria-expanded="false" aria-controls="wp-admin-menu" aria-label="Open menu">
                         <span class="screen-reader-text">Menu</span>
-                        <i class="fas fa-bars" aria-hidden="true"></i>
+                        <i class="fas fa-bars wp-menu-toggle__icon wp-menu-toggle__icon--bars" aria-hidden="true"></i>
+                        <i class="fas fa-times wp-menu-toggle__icon wp-menu-toggle__icon--close" aria-hidden="true"></i>
                     </button>
                     <div class="wp-admin-bar-brand">
                         <span class="wp-brand-mark" aria-hidden="true">S</span>
@@ -132,7 +165,7 @@ $sysVer = getSystemVersion();
         </header>
 
         <div class="wp-admin-frame">
-            <?php cms_render_admin_sidebar_nav(['mode' => 'fullpage', 'active' => 'media']); ?>
+            <?php cms_render_admin_sidebar_nav(['mode' => 'fullpage', 'active' => 'media', 'allowed_keys' => $allowedMenuKeys]); ?>
 
             <div class="wp-admin-main">
                 <div class="wp-admin-toolbar">
@@ -170,6 +203,10 @@ $sysVer = getSystemVersion();
                             <div class="notice notice-success is-dismissible"><p>File uploaded.</p></div>
                         <?php elseif (!empty($_GET['upload_err'])): ?>
                             <div class="notice notice-error"><p>Upload failed. Check file type (images, PDF, ZIP, audio, video) and size (max 8&nbsp;MB).</p></div>
+                        <?php elseif (!empty($_GET['deleted'])): ?>
+                            <div class="notice notice-success is-dismissible"><p>File deleted.</p></div>
+                        <?php elseif (!empty($_GET['delete_err'])): ?>
+                            <div class="notice notice-error"><p><?php echo ($_GET['delete_err'] ?? '') === 'csrf' ? 'Security check failed. Try again.' : 'Could not delete that file.'; ?></p></div>
                         <?php endif; ?>
 
                         <div class="postbox media-library view-grid" id="media-library">
@@ -190,16 +227,24 @@ $sysVer = getSystemVersion();
                                         <ul class="media-grid" role="list">
                                             <?php foreach ($items as $it): ?>
                                                 <li class="media-grid-item">
-                                                    <a href="<?php echo htmlspecialchars($it['url']); ?>" target="_blank" rel="noopener" class="media-grid-card">
-                                                        <span class="media-grid-thumb">
-                                                            <?php if ($it['is_image']): ?>
-                                                                <img src="<?php echo htmlspecialchars($it['url']); ?>" alt="" loading="lazy" width="280" height="280">
-                                                            <?php else: ?>
-                                                                <span class="media-grid-icon" aria-hidden="true"><i class="fas fa-file"></i></span>
-                                                            <?php endif; ?>
-                                                        </span>
-                                                        <span class="media-grid-caption"><?php echo htmlspecialchars($it['name']); ?></span>
-                                                    </a>
+                                                    <div class="media-grid-item-inner">
+                                                        <a href="<?php echo htmlspecialchars($it['url']); ?>" target="_blank" rel="noopener" class="media-grid-card">
+                                                            <span class="media-grid-thumb">
+                                                                <?php if ($it['is_image']): ?>
+                                                                    <img src="<?php echo htmlspecialchars($it['url']); ?>" alt="" loading="lazy" width="280" height="280">
+                                                                <?php else: ?>
+                                                                    <span class="media-grid-icon" aria-hidden="true"><i class="fas fa-file"></i></span>
+                                                                <?php endif; ?>
+                                                            </span>
+                                                            <span class="media-grid-caption"><?php echo htmlspecialchars($it['name']); ?></span>
+                                                        </a>
+                                                        <form method="post" class="media-delete-form media-delete-form--grid" onsubmit="return confirm('Delete this file? This cannot be undone.');">
+                                                            <input type="hidden" name="cms_csrf" value="<?php echo htmlspecialchars($csrf); ?>">
+                                                            <input type="hidden" name="delete_media" value="1">
+                                                            <input type="hidden" name="media_basename" value="<?php echo htmlspecialchars($it['name'], ENT_QUOTES, 'UTF-8'); ?>">
+                                                            <button type="submit" class="media-delete-btn" title="Delete file" aria-label="Delete <?php echo htmlspecialchars($it['name'], ENT_QUOTES, 'UTF-8'); ?>"><i class="fas fa-trash-alt" aria-hidden="true"></i></button>
+                                                        </form>
+                                                    </div>
                                                 </li>
                                             <?php endforeach; ?>
                                         </ul>
@@ -213,6 +258,7 @@ $sysVer = getSystemVersion();
                                                     <th scope="col">Name</th>
                                                     <th scope="col">Uploaded</th>
                                                     <th scope="col">Size</th>
+                                                    <th class="col-actions" scope="col"><span class="screen-reader-text">Actions</span></th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -231,6 +277,14 @@ $sysVer = getSystemVersion();
                                                         </td>
                                                         <td class="col-meta"><?php echo date('M j, Y g:i a', $it['mtime']); ?></td>
                                                         <td class="col-meta"><?php echo htmlspecialchars(formatBytes($it['size'])); ?></td>
+                                                        <td class="col-actions">
+                                                            <form method="post" class="media-delete-form media-delete-form--list" style="display:inline;margin:0;" onsubmit="return confirm('Delete this file? This cannot be undone.');">
+                                                                <input type="hidden" name="cms_csrf" value="<?php echo htmlspecialchars($csrf); ?>">
+                                                                <input type="hidden" name="delete_media" value="1">
+                                                                <input type="hidden" name="media_basename" value="<?php echo htmlspecialchars($it['name'], ENT_QUOTES, 'UTF-8'); ?>">
+                                                                <button type="submit" class="media-delete-btn media-delete-btn--text" title="Delete file permanently">Delete</button>
+                                                            </form>
+                                                        </td>
                                                     </tr>
                                                 <?php endforeach; ?>
                                             </tbody>
@@ -253,6 +307,7 @@ $sysVer = getSystemVersion();
             function setOpen(open) {
                 shell.classList.toggle('wp-menu-open', open);
                 toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+                toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
             }
             toggle.addEventListener('click', function () {
                 setOpen(!shell.classList.contains('wp-menu-open'));

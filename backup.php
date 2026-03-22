@@ -7,6 +7,12 @@ if (!isset($_SESSION['is_admin']) || $_SESSION['is_admin'] !== true) {
     header("Location: admin.php");
     exit;
 }
+$menuUserRecord = cms_current_user_record();
+$allowedMenuKeys = cms_user_allowed_menu_keys($menuUserRecord);
+if (!cms_user_may_access_menu_key($menuUserRecord, 'backup')) {
+    header('Location: admin.php?tab=' . rawurlencode($allowedMenuKeys[0] ?? 'pages'));
+    exit;
+}
 
 $sysVer   = getSystemVersion();
 $cmsRoot  = realpath(__DIR__);
@@ -34,17 +40,27 @@ function backup_is_managed_backup_zip(string $name): bool {
     return false;
 }
 
-function addFolderToZip(ZipArchive $zip, string $folder, string $base): void {
+/**
+ * @param bool $excludeZipFiles If true, skip files whose names end in .zip (export stays small; no nested archives).
+ */
+function addFolderToZip(ZipArchive $zip, string $folder, string $base, bool $excludeZipFiles = false): void {
     $handle = opendir($folder);
-    if (!$handle) return;
+    if (!$handle) {
+        return;
+    }
     while (($entry = readdir($handle)) !== false) {
-        if ($entry === '.' || $entry === '..') continue;
+        if ($entry === '.' || $entry === '..') {
+            continue;
+        }
         $fullPath = $folder . '/' . $entry;
         $relPath  = substr($fullPath, strlen($base) + 1);
         if (is_dir($fullPath)) {
             $zip->addEmptyDir($relPath);
-            addFolderToZip($zip, $fullPath, $base);
+            addFolderToZip($zip, $fullPath, $base, $excludeZipFiles);
         } elseif (is_file($fullPath)) {
+            if ($excludeZipFiles && preg_match('/\.zip$/i', $entry)) {
+                continue;
+            }
             $zip->addFile($fullPath, $relPath);
         }
     }
@@ -92,7 +108,7 @@ if (isset($_POST['do_export'])) {
 
     $zip = new ZipArchive();
     if ($zip->open($tmpPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) === true) {
-        addFolderToZip($zip, $cmsRoot, $cmsRoot);
+        addFolderToZip($zip, $cmsRoot, $cmsRoot, true);
         $zip->close();
 
         header('Content-Type: application/zip');
@@ -127,7 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['import_zip']) && is_
         $backupPath = $cmsRoot . '/' . $backupName;
         $bak = new ZipArchive();
         if ($bak->open($backupPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) === true) {
-            addFolderToZip($bak, $cmsRoot, $cmsRoot);
+            addFolderToZip($bak, $cmsRoot, $cmsRoot, true);
             $bak->close();
         } else {
             $backupName = '';
@@ -181,7 +197,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['import_zip']) && is_
                 <div class="wp-admin-bar-site">
                     <button type="button" class="wp-menu-toggle" id="wp-menu-toggle" aria-expanded="false" aria-controls="wp-admin-menu" aria-label="Open menu">
                         <span class="screen-reader-text">Menu</span>
-                        <i class="fas fa-bars" aria-hidden="true"></i>
+                        <i class="fas fa-bars wp-menu-toggle__icon wp-menu-toggle__icon--bars" aria-hidden="true"></i>
+                        <i class="fas fa-times wp-menu-toggle__icon wp-menu-toggle__icon--close" aria-hidden="true"></i>
                     </button>
                     <div class="wp-admin-bar-brand">
                         <span class="wp-brand-mark" aria-hidden="true">S</span>
@@ -201,7 +218,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['import_zip']) && is_
         </header>
 
         <div class="wp-admin-frame">
-            <?php cms_render_admin_sidebar_nav(['mode' => 'fullpage', 'active' => 'backup']); ?>
+            <?php cms_render_admin_sidebar_nav(['mode' => 'fullpage', 'active' => 'backup', 'allowed_keys' => $allowedMenuKeys]); ?>
 
             <div class="wp-admin-main">
                 <div class="wp-admin-toolbar">
@@ -226,8 +243,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['import_zip']) && is_
                             <div class="postbox" style="flex:1; min-width:260px;">
                                 <h2 class="postbox-header">Export</h2>
                                 <div class="postbox-inner">
-                                    <p style="margin:0 0 12px; font-size:13px; color:var(--ink3);">
-                                        Download all project files and folders as a single <strong>.zip</strong> archive.
+                                    <p style="margin:0 0 12px; font-size:13px; color:var(--ink3); line-height:1.45;">
+                                        Download project files and folders as a single <strong>.zip</strong> archive.
+                                        Existing <strong>.zip</strong> files in the project (backups, imports, etc.) are <strong>not</strong> included, so the export stays smaller and avoids nested archives.
                                     </p>
                                     <form method="post">
                                         <input type="hidden" name="cms_csrf" value="<?php echo htmlspecialchars($csrf); ?>">
@@ -320,6 +338,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['import_zip']) && is_
         function setOpen(open) {
             shell.classList.toggle('wp-menu-open', open);
             toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+            toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
         }
         toggle.addEventListener('click', function () {
             setOpen(!shell.classList.contains('wp-menu-open'));

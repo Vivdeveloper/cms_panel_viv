@@ -1,4 +1,11 @@
-<?php include 'config.php'; ?>
+<?php
+include 'config.php';
+include 'cms_core.php';
+if (!isset($_SESSION['is_admin']) || $_SESSION['is_admin'] !== true) {
+    header('Location: admin.php');
+    exit;
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
