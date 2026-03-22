@@ -1,5 +1,29 @@
 <?php
 // PHP Shared Header & Logic
+
+/**
+ * WordPress-style site URL detection.
+ * Builds full absolute URL: https://domain.com/subfolder/
+ * Works on Hostinger, localhost, any server.
+ */
+function cms_site_url() {
+    static $url = null;
+    if ($url !== null) return $url;
+
+    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $host   = $_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? 'localhost';
+    $script = $_SERVER['SCRIPT_NAME'] ?? '';
+    $dir    = rtrim(str_replace('\\', '/', dirname($script)), '/');
+    if ($dir === '.' || $dir === '') $dir = '';
+
+    $url = $scheme . '://' . $host . $dir . '/';
+    return $url;
+}
+
+function cms_url($file = '') {
+    return cms_site_url() . ltrim($file, '/');
+}
+
 $whatsapp = "9987842957";
 $phone = "9987842957";
 $repo = "Vivdeveloper/cms_panel_viv";

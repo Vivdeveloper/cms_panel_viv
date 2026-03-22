@@ -1,11 +1,19 @@
-<?php include 'config.php'; ?>
+<?php 
+include 'config.php'; 
+include 'cms_core.php';
+
+// Fetch home page early
+$pages = getAllCMSPages();
+$homePage = null;
+foreach ($pages as $p) { if ($p['is_home'] ?? false) { $homePage = $p; break; } }
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Home - <?php echo $brand; ?></title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="<?php echo cms_url('public_style.css'); ?>">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
@@ -14,12 +22,6 @@
     <?php getHeader('Home'); ?>
 
     <?php
-    // CMS Dynamic Home Overload
-    include 'cms_core.php';
-    $pages = getAllCMSPages();
-    $homePage = null;
-    foreach ($pages as $p) { if ($p['is_home'] ?? false) { $homePage = $p; break; } }
-
     if ($homePage): ?>
         <style><?php echo $homePage['css']; ?></style>
         <main class="dynamic-container section">

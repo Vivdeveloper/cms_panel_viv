@@ -17,7 +17,7 @@ $page = json_decode(file_get_contents($dataFile), true);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo ucwords($slug); ?> - <?php echo $brand; ?></title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="<?php echo cms_url('public_style.css'); ?>">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         /* Shared Styles */
