@@ -1,19 +1,9 @@
 <?php
 /**
- * Shared admin sidebar (Navigation). Include after config.php (and session) is loaded.
- *
- * @param array $opts {
- *     @type string $mode       'spa' = admin.php tab switching; 'fullpage' = normal links (media/backup).
- *     @type string $main_tab   When mode=spa, active tab: pages|trash|settings|html_tags|contact|users|config
- *     @type string $active     When mode=fullpage, active item: pages|trash|media|backup|settings|html_tags|contact|users|config
- * }
+ * Sidebar nav item definitions (keys match admin.php ?tab= values + media/backup).
  */
-function cms_render_admin_sidebar_nav(array $opts = []) {
-    $mode = ($opts['mode'] ?? 'fullpage') === 'spa' ? 'spa' : 'fullpage';
-    $mainTab = (string) ($opts['main_tab'] ?? 'pages');
-    $active = (string) ($opts['active'] ?? '');
-
-    $items = [
+function cms_admin_nav_items() {
+    return [
         ['key' => 'pages', 'href' => 'admin.php', 'icon' => 'fa-file-alt', 'label' => 'Pages'],
         ['key' => 'trash', 'href' => 'admin.php?tab=trash', 'icon' => 'fa-trash-alt', 'label' => 'Trash'],
         ['key' => 'media', 'href' => 'media_manager.php', 'icon' => 'fa-camera-retro', 'label' => 'Media'],
@@ -24,6 +14,30 @@ function cms_render_admin_sidebar_nav(array $opts = []) {
         ['key' => 'users', 'href' => 'admin.php?tab=users', 'icon' => 'fa-users-cog', 'label' => 'User Roles'],
         ['key' => 'config', 'href' => 'admin.php?tab=config', 'icon' => 'fa-server', 'label' => 'Server Config'],
     ];
+}
+
+/**
+ * Shared admin sidebar (Navigation). Include after config.php (and session) is loaded.
+ *
+ * @param array $opts {
+ *     @type string $mode          'spa' | 'fullpage'
+ *     @type string $main_tab      When mode=spa, active tab id
+ *     @type string $active        When mode=fullpage, active item key
+ *     @type array|null $allowed_keys If set, only these item keys are shown (e.g. from cms_user_allowed_menu_keys).
+ * }
+ */
+function cms_render_admin_sidebar_nav(array $opts = []) {
+    $mode = ($opts['mode'] ?? 'fullpage') === 'spa' ? 'spa' : 'fullpage';
+    $mainTab = (string) ($opts['main_tab'] ?? 'pages');
+    $active = (string) ($opts['active'] ?? '');
+    $allowed = $opts['allowed_keys'] ?? null;
+    $items = cms_admin_nav_items();
+    if (is_array($allowed) && $allowed !== []) {
+        $allowed = array_flip($allowed);
+        $items = array_values(array_filter($items, static function ($item) use ($allowed) {
+            return isset($allowed[$item['key']]);
+        }));
+    }
 
     echo '<div class="wp-admin-menu-backdrop" aria-hidden="true"></div>' . "\n";
     echo '<nav class="wp-admin-menu" id="wp-admin-menu" aria-label="Main menu">' . "\n";
