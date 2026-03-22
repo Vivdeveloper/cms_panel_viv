@@ -65,6 +65,7 @@ $canonical = cms_page_url($slug);
     </style>
 </head>
 <body>
+    <?php cms_echo_site_html_snippet('inject_body_open_html'); ?>
     <?php if (!$published && cms_is_admin_preview()): ?>
     <div class="cms-draft-banner" role="status">Draft preview — not visible to the public. <a href="admin.php?edit=<?php echo cms_escape($slug); ?>" style="color:#fff;margin-left:8px;">Edit</a></div>
     <?php endif; ?>
@@ -76,6 +77,7 @@ $canonical = cms_page_url($slug);
         <?php echo $page['html']; ?>
     </main>
 
+    <?php cms_echo_site_html_snippet('inject_footer_html'); ?>
     <script src="main.js"></script>
 </body>
 </html>

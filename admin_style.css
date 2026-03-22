@@ -200,6 +200,203 @@ justify-content:center;
 .wp-admin-dashboard .edit-body{flex:1;overflow-y:auto;padding:16px}
 .wp-admin-dashboard .form-group{margin-bottom:16px}
 .wp-admin-dashboard .form-group label{display:block;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;margin-bottom:5px;color:var(--ink2)}
+
+/* Calmer settings-style forms (Site settings, HTML Tags) */
+.wp-admin-dashboard .admin-form-simple{max-width:560px}
+.wp-admin-dashboard .admin-form-simple .form-group{margin-bottom:20px}
+.wp-admin-dashboard .admin-form-simple .form-group label{
+  text-transform:none;
+  letter-spacing:0;
+  font-size:13px;
+  font-weight:600;
+  color:var(--ink);
+  margin-bottom:6px;
+}
+.wp-admin-dashboard .admin-form-simple .field-hint{
+  font-size:12px;
+  color:var(--mid);
+  margin:6px 0 0;
+  line-height:1.45;
+}
+.wp-admin-dashboard .admin-form-simple .admin-inline-2{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:16px 20px;
+}
+@media (max-width:600px){
+  .wp-admin-dashboard .admin-form-simple .admin-inline-2{grid-template-columns:1fr}
+}
+.wp-admin-dashboard .admin-form-simple .site-logo-uploader-label{
+  display:block;
+  font-size:13px;
+  font-weight:600;
+  color:var(--ink);
+  margin-bottom:8px;
+}
+/* WordPress-like site logo control */
+.wp-admin-dashboard .admin-form-simple .site-logo-uploader{
+  border:1px solid var(--rule-l);
+  border-radius:4px;
+  background:#f6f7f7;
+  padding:16px;
+  max-width:360px;
+}
+.wp-admin-dashboard .admin-form-simple .site-logo-uploader__preview{
+  min-height:120px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin-bottom:12px;
+  background:var(--card);
+  border:1px dashed #c3c4c7;
+  border-radius:4px;
+  padding:16px;
+}
+.wp-admin-dashboard .admin-form-simple .site-logo-uploader__img{
+  max-width:100%;
+  max-height:120px;
+  width:auto;
+  height:auto;
+  object-fit:contain;
+  vertical-align:middle;
+}
+.wp-admin-dashboard .admin-form-simple .site-logo-uploader__placeholder{
+  font-size:13px;
+  color:var(--mid);
+  text-align:center;
+  line-height:1.4;
+}
+.wp-admin-dashboard .admin-form-simple .site-logo-uploader__actions{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:10px 14px;
+}
+.wp-admin-dashboard .admin-form-simple .site-logo-uploader__pick{
+  position:relative;
+  overflow:hidden;
+  cursor:pointer;
+  margin:0;
+}
+.wp-admin-dashboard .admin-form-simple .site-logo-uploader__input{
+  position:absolute;
+  left:0;
+  top:0;
+  width:0.1px;
+  height:0.1px;
+  opacity:0;
+  overflow:hidden;
+}
+.wp-admin-dashboard .admin-form-simple .site-logo-uploader__remove-label{
+  font-size:13px;
+  color:var(--ink2);
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  user-select:none;
+}
+.wp-admin-dashboard .admin-form-simple .site-logo-uploader__remove-label input{
+  width:16px;
+  height:16px;
+  margin:0;
+  cursor:pointer;
+}
+.wp-admin-dashboard .admin-form-simple .site-logo-uploader__hint{
+  margin-top:10px;
+  margin-bottom:0;
+}
+.wp-admin-dashboard .admin-form-simple .form-section-title{
+  display:block;
+  font-size:13px;
+  font-weight:600;
+  color:var(--ink);
+  margin:0 0 10px;
+}
+.wp-admin-dashboard .admin-form-simple .contact-cta-checks{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.wp-admin-dashboard .admin-form-simple .contact-cta-check{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  cursor:pointer;
+  font-size:13px;
+  color:var(--ink2);
+  margin:0;
+  font-weight:400;
+}
+.wp-admin-dashboard .admin-form-simple .contact-cta-check input{
+  width:18px;
+  height:18px;
+  margin:0;
+  flex-shrink:0;
+  cursor:pointer;
+}
+.wp-admin-dashboard .admin-form-simple .contact-cta-colors{
+  display:flex;
+  flex-wrap:wrap;
+  gap:20px;
+  align-items:center;
+}
+.wp-admin-dashboard .admin-form-simple .contact-cta-color{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-size:13px;
+  cursor:pointer;
+  margin:0;
+  font-weight:400;
+}
+.wp-admin-dashboard .admin-form-simple .contact-cta-color > span:first-child{
+  min-width:3.5rem;
+  color:var(--ink2);
+}
+.wp-admin-dashboard .admin-form-simple .contact-cta-layout-radios{
+  display:flex;
+  flex-wrap:wrap;
+  gap:16px;
+  margin-bottom:12px;
+}
+.wp-admin-dashboard .admin-form-simple .contact-cta-radio{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  cursor:pointer;
+  font-size:13px;
+  margin:0;
+  font-weight:400;
+  color:var(--ink2);
+}
+.wp-admin-dashboard .admin-form-simple .contact-cta-radio input{
+  margin:0;
+  cursor:pointer;
+}
+.wp-admin-dashboard .admin-form-simple.postbox{
+  border-radius:8px;
+  box-shadow:0 1px 2px rgba(0,0,0,.05);
+}
+.wp-admin-dashboard .admin-form-simple .postbox-inner{padding:20px 18px 22px}
+.wp-admin-dashboard .admin-form-simple .maint-row{
+  display:flex;
+  gap:10px;
+  align-items:flex-start;
+  padding:12px 14px;
+  background:#f6f7f7;
+  border-radius:6px;
+  border:1px solid var(--rule-l);
+  margin-bottom:18px;
+}
+.wp-admin-dashboard .admin-form-simple .maint-row input[type="checkbox"]{margin-top:4px;flex-shrink:0;width:18px;height:18px}
+.wp-admin-dashboard .admin-form-simple .maint-row label{
+  margin:0;
+  font-weight:500;
+  font-size:13px;
+  line-height:1.45;
+  color:var(--ink2);
+}
 .wp-admin-dashboard .wp-input{width:100%;border:1px solid var(--rule);padding:8px 10px;font-size:14px;background:var(--card);font-family:var(--f);border-radius:3px;transition:.1s}
 .wp-admin-dashboard .wp-input:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 1px var(--accent)}
 .wp-admin-dashboard .wp-code{width:100%;height:200px;font-family:var(--m);font-size:13px;line-height:1.5}
@@ -499,4 +696,60 @@ border-bottom:1px solid rgba(255,255,255,.12);
 }
 .cta-layout-preview-inner--full .cta-pfake{
 width:100%;
+}
+
+/* Live site in maintenance: no persistent left nav on desktop — open Navigation via the bar icon */
+@media (min-width:783px){
+body.admin-public-maintenance .wp-menu-toggle{
+display:inline-flex !important;
+width:36px;
+min-width:36px;
+height:var(--bh);
+font-size:16px;
+}
+body.admin-public-maintenance .wp-admin-menu-backdrop{
+display:block !important;
+position:fixed;
+top:var(--bh);
+left:0;
+right:0;
+bottom:0;
+z-index:998;
+background:rgba(0,0,0,.5);
+opacity:0;
+visibility:hidden;
+transition:opacity .18s ease,visibility .18s ease;
+pointer-events:none;
+}
+body.admin-public-maintenance .wp-admin-shell.wp-menu-open .wp-admin-menu-backdrop{
+opacity:1;
+visibility:visible;
+pointer-events:auto;
+}
+body.admin-public-maintenance .wp-admin-frame{
+position:relative;
+}
+body.admin-public-maintenance .wp-admin-menu{
+position:fixed !important;
+top:var(--bh) !important;
+left:0;
+bottom:0;
+width:min(280px,calc(85vw + env(safe-area-inset-left,0px))) !important;
+max-width:100%;
+flex-shrink:0;
+z-index:999;
+transform:translateX(-100%);
+transition:transform .22s ease;
+overflow-y:auto;
+-webkit-overflow-scrolling:touch;
+box-shadow:2px 0 12px rgba(0,0,0,.2);
+margin:0 !important;
+}
+body.admin-public-maintenance .wp-admin-shell.wp-menu-open .wp-admin-menu{
+transform:translateX(0);
+}
+body.admin-public-maintenance .wp-admin-main{
+width:100%;
+min-width:0;
+}
 }

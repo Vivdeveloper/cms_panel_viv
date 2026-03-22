@@ -62,17 +62,82 @@ body, html {
     }
 }
 
-.logo {
-    font-size: clamp(18px, 4vw, 24px);
-    font-weight: 900;
+/* Public header brand: optional logo + name + subtitle (e.g. company + PVT LTD) */
+.nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    flex-shrink: 1;
+    min-width: 0;
+    max-width: min(100%, 56vw);
+}
+
+@media (min-width: 1024px) {
+    .nav-brand {
+        max-width: min(100%, 420px);
+    }
+}
+
+/* Logos are usually uploaded at 512×515; any aspect fits via max bounds + object-fit */
+.nav-brand__logo {
+    max-height: clamp(40px, 11vw, 54px);
+    width: auto;
+    height: auto;
+    max-width: min(56px, 20vw);
+    object-fit: contain;
+    object-position: center;
+    border-radius: 10px;
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.nav-brand__text {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    min-width: 0;
+}
+
+.nav-brand__name {
+    font-size: clamp(15px, 3.6vw, 22px);
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: 0.02em;
+}
+
+.nav-brand--rich .nav-brand__name {
+    color: #e8eef6;
+}
+
+.nav-brand__sub {
+    font-size: clamp(9px, 2.2vw, 11px);
+    font-weight: 600;
+    color: #94a3b8;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin-top: 3px;
+    line-height: 1.2;
+}
+
+.nav-brand--gradient .nav-brand__name {
     background: linear-gradient(45deg, var(--secondary), var(--primary));
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
-    letter-spacing: 1px;
-    text-decoration: none;
-    flex-shrink: 0;
-    min-width: 0;
+}
+
+@media (max-width: 380px) {
+    .nav-brand {
+        gap: 8px;
+        max-width: min(100%, 50vw);
+    }
+
+    .nav-brand__logo {
+        max-height: clamp(36px, 10vw, 44px);
+        max-width: min(46px, 22vw);
+    }
 }
 
 /* Hamburger */
@@ -339,18 +404,61 @@ body.nav-drawer-open .nav-menu-toggle .nav-menu-bar:nth-child(3) {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 12px;
     padding: 16px 18px;
     border-bottom: 1px solid var(--glass-border);
     flex-shrink: 0;
 }
 
+.nav-drawer__brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    flex: 1;
+}
+
+.nav-drawer__brand-logo {
+    max-height: 44px;
+    width: auto;
+    height: auto;
+    max-width: 44px;
+    object-fit: contain;
+    object-position: center;
+    border-radius: 8px;
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.nav-drawer__brand-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
 .nav-drawer__title {
     font-weight: 800;
     font-size: 16px;
+    line-height: 1.2;
     background: linear-gradient(45deg, var(--secondary), var(--primary));
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
+}
+
+.nav-drawer__head--rich .nav-drawer__title {
+    background: none;
+    -webkit-text-fill-color: #e8eef6;
+    color: #e8eef6;
+}
+
+.nav-drawer__subtitle {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #94a3b8;
+    margin-top: 2px;
 }
 
 .nav-drawer__close {

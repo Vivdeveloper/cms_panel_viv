@@ -1,6 +1,7 @@
 <?php
 include 'config.php';
 include 'cms_core.php';
+require_once __DIR__ . '/admin_menu.php';
 
 // Handle Logout
 if (isset($_GET['logout'])) { session_destroy(); header("Location: admin.php"); exit; }
@@ -53,7 +54,7 @@ if ($editData) {
 
 $csrf = cms_csrf_token();
 
-$validMainTabs = ['pages', 'trash', 'users', 'settings', 'contact', 'config'];
+$validMainTabs = ['pages', 'trash', 'users', 'settings', 'html_tags', 'contact', 'config'];
 $mainTab       = isset($_GET['tab']) && in_array((string) $_GET['tab'], $validMainTabs, true) ? (string) $_GET['tab'] : 'pages';
 $allUsers     = getAllUsers();
 $userQuery    = isset($_GET['user']) ? (string) $_GET['user'] : '';
@@ -80,7 +81,7 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
     <link rel="stylesheet" href="<?php echo cms_url('admin_style.css'); ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body class="wp-admin-skin wp-admin-dashboard">
+<body class="wp-admin-skin wp-admin-dashboard<?php echo cms_is_maintenance_mode() ? ' admin-public-maintenance' : ''; ?>">
     <div class="wp-admin-shell">
         <header class="wp-admin-bar" role="banner">
             <div class="wp-admin-bar-row">
@@ -107,21 +108,7 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
         </header>
 
         <div class="wp-admin-frame">
-            <div class="wp-admin-menu-backdrop" aria-hidden="true"></div>
-            <nav class="wp-admin-menu" id="wp-admin-menu" aria-label="Main menu">
-                <div class="menu-top">Navigation</div>
-                <a href="admin.php" class="nav-btn <?php echo $mainTab === 'pages' ? 'current' : ''; ?>" onclick="switchMainTab('pages', event); return false;"><i class="fas fa-file-alt" aria-hidden="true"></i> Pages</a>
-                <a href="admin.php?tab=trash" class="nav-btn <?php echo $mainTab === 'trash' ? 'current' : ''; ?>" onclick="switchMainTab('trash', event); return false;"><i class="fas fa-trash-alt" aria-hidden="true"></i> Trash</a>
-                <a href="media_manager.php"><i class="fas fa-camera-retro" aria-hidden="true"></i> Media</a>
-                <a href="backup.php"><i class="fas fa-cloud-download-alt" aria-hidden="true"></i> Backup</a>
-                <a href="admin.php?tab=settings" class="nav-btn <?php echo $mainTab === 'settings' ? 'current' : ''; ?>" onclick="switchMainTab('settings', event); return false;"><i class="fas fa-cog" aria-hidden="true"></i> Site settings</a>
-                <a href="admin.php?tab=contact" class="nav-btn <?php echo $mainTab === 'contact' ? 'current' : ''; ?>" onclick="switchMainTab('contact', event); return false;"><i class="fas fa-phone-alt" aria-hidden="true"></i> Call now</a>
-                <a href="admin.php?tab=users" class="nav-btn <?php echo $mainTab === 'users' ? 'current' : ''; ?>" onclick="switchMainTab('users', event); return false;"><i class="fas fa-users-cog" aria-hidden="true"></i> User Roles</a>
-                <a href="admin.php?tab=config" class="nav-btn <?php echo $mainTab === 'config' ? 'current' : ''; ?>" onclick="switchMainTab('config', event); return false;"><i class="fas fa-server" aria-hidden="true"></i> Server Config</a>
-                <div class="menu-footer">
-                    <a href="?logout=1"><i class="fas fa-power-off" aria-hidden="true"></i> Log Out</a>
-                </div>
-            </nav>
+            <?php cms_render_admin_sidebar_nav(['mode' => 'spa', 'main_tab' => $mainTab]); ?>
 
             <div class="wp-admin-main">
                 <?php
@@ -134,6 +121,7 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                     'last_admin'  => 'You must keep at least one Administrator. Add or promote another admin before changing this.',
                     'cannot_delete_admin' => 'The primary admin account (admin) cannot be deleted.',
                     'restore_slug_exists' => 'A live page already uses that URL slug. Rename or delete the existing page, then restore from Trash.',
+                    'header_logo_upload' => 'Header logo was not updated (invalid type, too large, or server error). Other site settings were saved. Use JPG, PNG, GIF, WebP, or SVG under 3 MB, or clear the file field and save.',
                 ];
                 $adminToastStripKeys = ['saved', 'deleted', 'trashed', 'restored', 'permanently_deleted', 'settings_saved', 'contact_saved', 'pwd_ok', 'patched', 'user_updated', 'user_deleted'];
                 $adminToastMessage = '';
@@ -144,7 +132,7 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                     'restored'        => 'Page restored from Trash.',
                     'permanently_deleted' => 'Page deleted permanently.',
                     'settings_saved'  => 'Site settings saved.',
-                    'contact_saved'   => 'Call now / contact saved. Numbers appear in the header and sticky bar.',
+                    'contact_saved'   => 'Call & WhatsApp settings saved.',
                     'pwd_ok'          => 'Admin password updated.',
                     'patched'         => 'Version bumped (patch).',
                     'user_updated'    => 'User role updated.',
@@ -306,45 +294,95 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                 <!-- SITE SETTINGS PANEL -->
                 <div id="settings-panel" class="wp-panel wp-panel-wide <?php echo $mainTab === 'settings' ? 'active' : ''; ?>">
                     <h1 class="wp-heading-inline">Site settings</h1>
-                    <hr class="wp-header-end">
                     <?php $st = getSiteSettings(); ?>
-                    <div class="postbox" style="margin-bottom:16px;">
-                        <h2 class="postbox-header">General</h2>
+                    <div class="postbox admin-form-simple" style="margin-bottom:16px;">
                         <div class="postbox-inner">
-                        <form method="post">
+                        <form method="post" enctype="multipart/form-data">
                             <input type="hidden" name="cms_csrf" value="<?php echo htmlspecialchars($csrf); ?>">
+                            <input type="hidden" name="admin_return_tab" value="settings">
+                            <input type="hidden" name="header_logo_url" value="<?php echo htmlspecialchars($st['header_logo_url'] ?? ''); ?>">
                             <div class="form-group">
-                                <label for="st-brand">Site name / brand</label>
-                                <input type="text" id="st-brand" name="brand" class="wp-input" value="<?php echo htmlspecialchars($st['brand'] ?? ''); ?>">
-                            </div>
-                            <p class="description" style="margin:-8px 0 16px;font-size:12px;color:var(--ink3);">Phone and WhatsApp for the live site are edited under <strong>Call now</strong> in the sidebar.</p>
-                            <div class="form-group">
-                                <label for="st-lang">HTML lang</label>
-                                <input type="text" id="st-lang" name="default_lang" class="wp-input" value="<?php echo htmlspecialchars($st['default_lang'] ?? 'en'); ?>" maxlength="10">
+                                <label for="st-brand">Site name</label>
+                                <input type="text" id="st-brand" name="brand" class="wp-input" value="<?php echo htmlspecialchars($st['brand'] ?? ''); ?>" placeholder="Your business name">
                             </div>
                             <div class="form-group">
-                                <label for="st-tagline">Site tagline (optional)</label>
-                                <input type="text" id="st-tagline" name="site_tagline" class="wp-input" value="<?php echo htmlspecialchars($st['site_tagline'] ?? ''); ?>">
+                                <label for="st-tagline">Tagline <span class="field-hint" style="font-weight:400;">(optional)</span></label>
+                                <input type="text" id="st-tagline" name="site_tagline" class="wp-input" value="<?php echo htmlspecialchars($st['site_tagline'] ?? ''); ?>" placeholder="Short line under your site name">
+                            </div>
+                            <?php $logoResolved = cms_header_logo_url_resolved(); ?>
+                            <div class="form-group">
+                                <span class="site-logo-uploader-label">Site logo</span>
+                                <div class="site-logo-uploader">
+                                    <div class="site-logo-uploader__preview" id="site-logo-preview-wrap">
+                                        <?php if ($logoResolved !== ''): ?>
+                                        <img src="<?php echo htmlspecialchars($logoResolved); ?>" alt="" class="site-logo-uploader__img" id="site-logo-preview-img" width="160" height="160" decoding="async">
+                                        <?php else: ?>
+                                        <div class="site-logo-uploader__placeholder" id="site-logo-placeholder">No logo selected</div>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="site-logo-uploader__actions">
+                                        <label class="button site-logo-uploader__pick">
+                                            <span class="site-logo-uploader__pick-text"><?php echo $logoResolved !== '' ? 'Replace image' : 'Select image'; ?></span>
+                                            <input type="file" id="st-header-logo-file" name="header_logo_file" class="site-logo-uploader__input" accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml,.jpg,.jpeg,.png,.gif,.webp,.svg" aria-label="Upload logo image">
+                                        </label>
+                                        <?php if ($logoResolved !== ''): ?>
+                                        <label class="site-logo-uploader__remove-label">
+                                            <input type="checkbox" name="header_logo_clear" value="1" id="st-header-logo-clear"> Remove logo
+                                        </label>
+                                        <?php endif; ?>
+                                    </div>
+                                    <p class="field-hint site-logo-uploader__hint">PNG, JPG, WebP, GIF, or SVG · max 3&nbsp;MB</p>
+                                </div>
                             </div>
                             <div class="form-group">
-                                <label for="st-og">Default OG image URL (absolute)</label>
-                                <input type="url" id="st-og" name="default_og_image" class="wp-input" value="<?php echo htmlspecialchars($st['default_og_image'] ?? ''); ?>" placeholder="https://...">
+                                <label for="st-og">Social share image</label>
+                                <input type="url" id="st-og" name="default_og_image" class="wp-input" value="<?php echo htmlspecialchars($st['default_og_image'] ?? ''); ?>" placeholder="https://… (full URL)">
+                                <p class="field-hint">Default image when links are shared (Open Graph).</p>
+                            </div>
+                            <div class="form-group">
+                                <label for="st-lang">Language code</label>
+                                <input type="text" id="st-lang" name="default_lang" class="wp-input" value="<?php echo htmlspecialchars($st['default_lang'] ?? 'en'); ?>" maxlength="10" placeholder="en" style="max-width:7rem;">
                             </div>
                             <div class="form-group">
                                 <label for="st-robots">Extra robots.txt lines</label>
-                                <textarea id="st-robots" name="robots_extra" class="wp-input" style="height:80px;"><?php echo htmlspecialchars($st['robots_extra'] ?? ''); ?></textarea>
-                            </div>
-                            <div class="form-group">
-                                <label for="st-analytics">Analytics / head HTML (trusted admins only)</label>
-                                <textarea id="st-analytics" name="analytics_head_html" class="wp-input" style="height:100px;" placeholder="&lt;script&gt;...&lt;/script&gt;"><?php echo htmlspecialchars($st['analytics_head_html'] ?? ''); ?></textarea>
+                                <textarea id="st-robots" name="robots_extra" class="wp-input" style="height:72px;min-height:72px;"><?php echo htmlspecialchars($st['robots_extra'] ?? ''); ?></textarea>
                             </div>
                             <input type="hidden" name="maintenance_mode" value="0">
-                            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-                                <input type="checkbox" name="maintenance_mode" id="st-maint" value="1" <?php echo !empty($st['maintenance_mode']) ? 'checked' : ''; ?> style="width:18px;height:18px;">
-                                <label for="st-maint" style="margin:0;font-weight:600;">Maintenance mode (public pages show a hold message; admin tools still work. Use a private/incognito window to preview what visitors see.)</label>
+                            <div class="maint-row">
+                                <input type="checkbox" name="maintenance_mode" id="st-maint" value="1" <?php echo !empty($st['maintenance_mode']) ? 'checked' : ''; ?>>
+                                <label for="st-maint">Maintenance mode — visitors see a short “updating” message instead of your pages.</label>
                             </div>
-                            <button type="submit" name="save_site_settings" class="button button-primary">Save site settings</button>
+                            <button type="submit" name="save_site_settings" class="button button-primary">Save</button>
                         </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- HTML TAGS: head, body open, footer (single screen) -->
+                <div id="html_tags-panel" class="wp-panel wp-panel-wide <?php echo $mainTab === 'html_tags' ? 'active' : ''; ?>">
+                    <h1 class="wp-heading-inline">HTML Tags</h1>
+                    <div class="postbox admin-form-simple" style="margin-bottom:16px;">
+                        <div class="postbox-inner">
+                            <form method="post">
+                                <input type="hidden" name="cms_csrf" value="<?php echo htmlspecialchars($csrf); ?>">
+                                <input type="hidden" name="admin_return_tab" value="html_tags">
+                                <div class="form-group">
+                                    <label for="hx-head">&lt;head&gt; snippets</label>
+                                    <p class="field-hint" style="margin-bottom:8px;">End of <code>&lt;head&gt;</code> — analytics, meta, pixels.</p>
+                                    <textarea id="hx-head" name="analytics_head_html" class="wp-input" style="height:120px;min-height:120px;" placeholder="&lt;script&gt;…&lt;/script&gt;"><?php echo htmlspecialchars($st['analytics_head_html'] ?? ''); ?></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label for="hx-body-open">After &lt;body&gt;</label>
+                                    <p class="field-hint" style="margin-bottom:8px;">Right after the opening body tag.</p>
+                                    <textarea id="hx-body-open" name="inject_body_open_html" class="wp-input" style="height:100px;min-height:100px;"><?php echo htmlspecialchars($st['inject_body_open_html'] ?? ''); ?></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label for="hx-footer">Footer</label>
+                                    <p class="field-hint" style="margin-bottom:8px;">Before <code>&lt;/body&gt;</code> — widgets, extra scripts.</p>
+                                    <textarea id="hx-footer" name="inject_footer_html" class="wp-input" style="height:120px;min-height:120px;"><?php echo htmlspecialchars($st['inject_footer_html'] ?? ''); ?></textarea>
+                                </div>
+                                <button type="submit" name="save_site_settings" class="button button-primary">Save</button>
+                            </form>
                         </div>
                     </div>
                 </div>
@@ -352,7 +390,6 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                 <!-- CALL NOW / CONTACT CTA PANEL -->
                 <div id="contact-panel" class="wp-panel wp-panel-wide <?php echo $mainTab === 'contact' ? 'active' : ''; ?>">
                     <h1 class="wp-heading-inline">Call now &amp; WhatsApp</h1>
-                    <hr class="wp-header-end">
                     <?php
                     $ct = getSiteSettings();
                     $ctSl = (($ct['sticky_cta_layout'] ?? 'full') === 'split') ? 'split' : 'full';
@@ -360,75 +397,69 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                     $ctaCallC2 = cms_sanitize_hex_color($ct['cta_call_color2'] ?? '', '#1e40af');
                     $ctaCallLabel = cms_sanitize_cta_label($ct['cta_call_label'] ?? '', 'Call');
                     ?>
-                    <div class="postbox" style="margin-bottom:16px;">
-                        <h2 class="postbox-header">Public site buttons</h2>
+                    <div class="postbox admin-form-simple" style="margin-bottom:16px;">
                         <div class="postbox-inner">
-                            <p class="description" style="margin:0 0 16px;font-size:13px;color:var(--ink3);line-height:1.5;">These numbers power the <strong>Call</strong> and green <strong>WhatsApp</strong> buttons in the <strong>desktop header</strong>, <strong>mobile menu</strong>, and <strong>bottom bar</strong> (same design everywhere). You can change the Call button gradient below.</p>
                             <form method="post" id="contact-cta-form">
                                 <input type="hidden" name="cms_csrf" value="<?php echo htmlspecialchars($csrf); ?>">
                                 <div class="form-group">
-                                    <span class="label-like" style="display:block;font-weight:600;margin-bottom:8px;font-size:13px;">Show buttons</span>
+                                    <span class="form-section-title">Buttons</span>
                                     <input type="hidden" name="cta_enable_call" value="0">
                                     <input type="hidden" name="cta_enable_whatsapp" value="0">
                                     <input type="hidden" name="cta_sticky_desktop" value="0">
-                                    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
-                                        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;">
-                                            <input type="checkbox" name="cta_enable_call" value="1" <?php echo !empty($ct['cta_enable_call']) ? 'checked' : ''; ?> style="width:18px;height:18px;">
-                                            <span><strong>Enable Call</strong> button</span>
+                                    <div class="contact-cta-checks">
+                                        <label class="contact-cta-check">
+                                            <input type="checkbox" name="cta_enable_call" value="1" <?php echo !empty($ct['cta_enable_call']) ? 'checked' : ''; ?>>
+                                            <span>Call</span>
                                         </label>
-                                        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;">
-                                            <input type="checkbox" name="cta_enable_whatsapp" value="1" <?php echo !empty($ct['cta_enable_whatsapp']) ? 'checked' : ''; ?> style="width:18px;height:18px;">
-                                            <span><strong>Enable WhatsApp</strong> button</span>
+                                        <label class="contact-cta-check">
+                                            <input type="checkbox" name="cta_enable_whatsapp" value="1" <?php echo !empty($ct['cta_enable_whatsapp']) ? 'checked' : ''; ?>>
+                                            <span>WhatsApp</span>
                                         </label>
-                                        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;">
-                                            <input type="checkbox" name="cta_sticky_desktop" value="1" <?php echo !empty($ct['cta_sticky_desktop']) ? 'checked' : ''; ?> style="width:18px;height:18px;">
-                                            <span><strong>Bottom bar on desktop too</strong> (same split/full layout as mobile)</span>
+                                        <label class="contact-cta-check">
+                                            <input type="checkbox" name="cta_sticky_desktop" value="1" <?php echo !empty($ct['cta_sticky_desktop']) ? 'checked' : ''; ?>>
+                                            <span>Bottom bar on desktop</span>
                                         </label>
                                     </div>
+                                    <p class="field-hint" style="margin-top:4px;">You can switch off Call, WhatsApp, or both — hidden buttons won’t show on the site.</p>
                                 </div>
                                 <div class="form-group">
-                                    <label for="contact_phone">Phone (display &amp; tap-to-call)</label>
-                                    <input type="text" id="contact_phone" name="contact_phone" class="wp-input" value="<?php echo htmlspecialchars($ct['phone'] ?? ''); ?>" placeholder="e.g. +91 99878 42957" autocomplete="tel">
-                                    <p class="description" style="margin-top:6px;">Shown on buttons; digits are used for the <code>tel:</code> link.</p>
+                                    <label for="contact_phone">Phone number</label>
+                                    <input type="text" id="contact_phone" name="contact_phone" class="wp-input" value="<?php echo htmlspecialchars($ct['phone'] ?? ''); ?>" placeholder="1234567890" autocomplete="tel">
                                 </div>
                                 <div class="form-group">
-                                    <label for="cta_call_label">Call button text</label>
+                                    <label for="cta_call_label">Call button label</label>
                                     <input type="text" id="cta_call_label" name="cta_call_label" class="wp-input" maxlength="32" value="<?php echo htmlspecialchars($ctaCallLabel, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Call" autocomplete="off">
-                                    <p class="description" style="margin-top:6px;">Label on the public Call button (header, mobile menu, bottom bar). Up to 32 characters.</p>
                                 </div>
                                 <div class="form-group">
                                     <label for="contact_whatsapp">WhatsApp number</label>
-                                    <input type="text" id="contact_whatsapp" name="contact_whatsapp" class="wp-input" value="<?php echo htmlspecialchars($ct['whatsapp'] ?? ''); ?>" placeholder="Country code + number, no + required" inputmode="numeric" autocomplete="tel">
-                                    <p class="description" style="margin-top:6px;">Use the same number you use in WhatsApp (with country code). Non-digits are stripped for the chat link.</p>
+                                    <input type="text" id="contact_whatsapp" name="contact_whatsapp" class="wp-input" value="<?php echo htmlspecialchars($ct['whatsapp'] ?? ''); ?>" placeholder="+91 1234567890" inputmode="tel" autocomplete="tel">
                                 </div>
                                 <div class="form-group">
-                                    <span class="label-like" style="display:block;font-weight:600;margin-bottom:8px;font-size:13px;">Call button colors</span>
-                                    <p class="description" style="margin:0 0 10px;">Vertical gradient (top → bottom), applied to every <strong>Call</strong> button on the public site.</p>
-                                    <div class="cta-color-row" style="display:flex;flex-wrap:wrap;gap:20px;align-items:center;">
-                                        <label class="cta-color-picker-label" for="cta_call_color" style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;">
-                                            <span style="min-width:3.5rem;">Top</span>
-                                            <input type="color" id="cta_call_color" name="cta_call_color" value="<?php echo htmlspecialchars($ctaCallC1); ?>" class="cta-color-input" title="Call button — top color">
+                                    <span class="form-section-title">Call button gradient</span>
+                                    <div class="cta-color-row contact-cta-colors">
+                                        <label class="contact-cta-color" for="cta_call_color">
+                                            <span>Top</span>
+                                            <input type="color" id="cta_call_color" name="cta_call_color" value="<?php echo htmlspecialchars($ctaCallC1); ?>" class="cta-color-input" title="Top color">
                                         </label>
-                                        <label class="cta-color-picker-label" for="cta_call_color2" style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;">
-                                            <span style="min-width:3.5rem;">Bottom</span>
-                                            <input type="color" id="cta_call_color2" name="cta_call_color2" value="<?php echo htmlspecialchars($ctaCallC2); ?>" class="cta-color-input" title="Call button — bottom color">
+                                        <label class="contact-cta-color" for="cta_call_color2">
+                                            <span>Bottom</span>
+                                            <input type="color" id="cta_call_color2" name="cta_call_color2" value="<?php echo htmlspecialchars($ctaCallC2); ?>" class="cta-color-input" title="Bottom color">
                                         </label>
                                     </div>
                                 </div>
                                 <div class="form-group">
-                                    <span class="label-like" style="display:block;font-weight:600;margin-bottom:8px;font-size:13px;">Bottom bar layout</span>
-                                    <p class="description" style="margin:0 0 10px;">Applies to the fixed bar on phones and tablets, and to the desktop bottom bar if you enabled it above. The desktop header uses the same split/full arrangement for the two buttons.</p>
-                                    <div class="cta-layout-radios" style="display:flex;flex-wrap:wrap;gap:16px;margin-bottom:14px;">
-                                        <label class="cta-layout-radio-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;">
+                                    <span class="form-section-title">Bottom bar layout</span>
+                                    <div class="cta-layout-radios contact-cta-layout-radios">
+                                        <label class="contact-cta-radio">
                                             <input type="radio" name="sticky_cta_layout" value="full" <?php echo $ctSl === 'full' ? 'checked' : ''; ?>>
-                                            <span><strong>Full</strong> — stacked, each button full width</span>
+                                            <span>Full width</span>
                                         </label>
-                                        <label class="cta-layout-radio-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;">
+                                        <label class="contact-cta-radio">
                                             <input type="radio" name="sticky_cta_layout" value="split" <?php echo $ctSl === 'split' ? 'checked' : ''; ?>>
-                                            <span><strong>Split</strong> — Call and WhatsApp side by side (50% / 50%)</span>
+                                            <span>Side by side</span>
                                         </label>
                                     </div>
-                                    <div class="cta-layout-preview-label" style="font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink2);margin-bottom:8px;">Live preview</div>
+                                    <p class="field-hint" style="margin-bottom:8px;">Preview</p>
                                     <div id="cta-layout-preview-phone" class="cta-layout-preview-phone" aria-hidden="true" style="--cta-preview-call-a: <?php echo htmlspecialchars($ctaCallC1, ENT_QUOTES, 'UTF-8'); ?>; --cta-preview-call-b: <?php echo htmlspecialchars($ctaCallC2, ENT_QUOTES, 'UTF-8'); ?>;">
                                         <div class="cta-layout-preview-notch"></div>
                                         <div id="cta-layout-preview-inner" class="cta-layout-preview-inner cta-layout-preview-inner--<?php echo htmlspecialchars($ctSl); ?>">
@@ -437,14 +468,9 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                                         </div>
                                     </div>
                                 </div>
-                                <button type="submit" name="save_contact_cta" class="button button-primary">Save contact buttons</button>
+                                <p class="field-hint" style="margin:0 0 16px;">Clear a number to use the default for that field in <code>config.php</code>.</p>
+                                <button type="submit" name="save_contact_cta" class="button button-primary">Save</button>
                             </form>
-                        </div>
-                    </div>
-                    <div class="postbox">
-                        <h2 class="postbox-header">Fallback (optional)</h2>
-                        <div class="postbox-inner" style="font-size:12px;line-height:1.7;color:var(--ink3);">
-                            If both fields are cleared, the site uses <code>CMS_PUBLIC_PHONE</code> and <code>CMS_PUBLIC_WHATSAPP</code> in <code>config.php</code>.
                         </div>
                     </div>
                 </div>
@@ -645,6 +671,25 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
             hideTimer = setTimeout(dismiss, 5200);
             btn.addEventListener('click', dismiss);
         })();
+        (function () {
+            var input = document.getElementById('st-header-logo-file');
+            if (!input) return;
+            input.addEventListener('change', function () {
+                var f = input.files && input.files[0];
+                if (!f) return;
+                try {
+                    var url = URL.createObjectURL(f);
+                    var wrap = document.getElementById('site-logo-preview-wrap');
+                    if (wrap) {
+                        wrap.innerHTML = '<img src="' + url + '" alt="" class="site-logo-uploader__img" id="site-logo-preview-img" width="160" height="160" decoding="async">';
+                    }
+                    var t = document.querySelector('.site-logo-uploader__pick-text');
+                    if (t) t.textContent = 'Replace image';
+                    var cb = document.getElementById('st-header-logo-clear');
+                    if (cb) cb.checked = false;
+                } catch (e1) {}
+            });
+        })();
         function syncMobileSplitStripClass(id) {
             var split = document.getElementById('wp-split-main');
             if (!split) return;
@@ -812,6 +857,11 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                     var sb = st.querySelector('button[name="save_site_settings"]');
                     if (sb) { sb.click(); return; }
                 }
+                var htags = document.getElementById('html_tags-panel');
+                if (htags && htags.classList.contains('active')) {
+                    var htb = htags.querySelector('button[name="save_site_settings"]');
+                    if (htb) { htb.click(); return; }
+                }
                 var ct = document.getElementById('contact-panel');
                 if (ct && ct.classList.contains('active')) {
                     var cb = ct.querySelector('button[name="save_contact_cta"]');
@@ -946,7 +996,7 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
         (function () {
             var params = new URLSearchParams(window.location.search);
             var tab = params.get('tab');
-            if (tab === 'users' || tab === 'config' || tab === 'settings' || tab === 'contact' || tab === 'trash') {
+            if (tab === 'users' || tab === 'config' || tab === 'settings' || tab === 'html_tags' || tab === 'contact' || tab === 'trash') {
                 var nav = document.querySelector('#wp-admin-menu a[onclick*="' + tab + '"]');
                 if (nav && typeof switchMainTab === 'function') {
                     switchMainTab(tab, { preventDefault: function () {}, currentTarget: nav });

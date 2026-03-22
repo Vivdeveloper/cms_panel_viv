@@ -1,6 +1,7 @@
 <?php
 include 'config.php';
 include 'cms_core.php';
+require_once __DIR__ . '/admin_menu.php';
 
 if (!isset($_SESSION['is_admin']) || $_SESSION['is_admin'] !== true) {
     header("Location: admin.php");
@@ -12,6 +13,26 @@ $cmsRoot  = realpath(__DIR__);
 $msg      = '';
 $msgType  = '';
 $csrf     = cms_csrf_token();
+
+/** Only these .zip names appear under "Backup Files" (not random zips extracted from imports). */
+function backup_is_managed_backup_zip(string $name): bool {
+    if (!preg_match('/\.zip$/i', $name)) {
+        return false;
+    }
+    if (preg_match('/^import_backup_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.zip$/i', $name)) {
+        return true;
+    }
+    if (preg_match('/^full_system_backup_.+\.zip$/i', $name)) {
+        return true;
+    }
+    if (preg_match('/^backup_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.zip$/i', $name)) {
+        return true;
+    }
+    if (preg_match('/^hard_restore_backup_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.zip$/i', $name)) {
+        return true;
+    }
+    return false;
+}
 
 function addFolderToZip(ZipArchive $zip, string $folder, string $base): void {
     $handle = opendir($folder);
@@ -34,7 +55,7 @@ function addFolderToZip(ZipArchive $zip, string $folder, string $base): void {
 if (isset($_GET['dl_backup'])) {
     $file = basename($_GET['dl_backup']);
     $path = $cmsRoot . '/' . $file;
-    if (preg_match('/\.zip$/i', $file) && is_file($path)) {
+    if (backup_is_managed_backup_zip($file) && is_file($path)) {
         header('Content-Type: application/zip');
         header('Content-Disposition: attachment; filename="' . $file . '"');
         header('Content-Length: ' . filesize($path));
@@ -51,7 +72,7 @@ if (isset($_POST['del_backup'])) {
     } else {
         $file = basename((string) $_POST['del_backup']);
         $path = $cmsRoot . '/' . $file;
-        if (preg_match('/\.zip$/i', $file) && is_file($path)) {
+        if (backup_is_managed_backup_zip($file) && is_file($path)) {
             @unlink($path);
             $msg     = 'Deleted ' . $file;
             $msgType = 'success';
@@ -153,7 +174,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['import_zip']) && is_
     <link rel="stylesheet" href="<?php echo cms_url('admin_style.css'); ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body class="wp-admin-skin">
+<body class="wp-admin-skin<?php echo cms_is_maintenance_mode() ? ' admin-public-maintenance' : ''; ?>">
     <div class="wp-admin-shell">
         <header class="wp-admin-bar" role="banner">
             <div class="wp-admin-bar-row">
@@ -180,20 +201,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['import_zip']) && is_
         </header>
 
         <div class="wp-admin-frame">
-            <div class="wp-admin-menu-backdrop" aria-hidden="true"></div>
-            <nav class="wp-admin-menu" id="wp-admin-menu" aria-label="Main menu">
-                <div class="menu-top">Navigation</div>
-                <a href="admin.php"><i class="fas fa-file-alt" aria-hidden="true"></i> Pages</a>
-                <a href="media_manager.php"><i class="fas fa-camera-retro" aria-hidden="true"></i> Media</a>
-                <a href="backup.php" class="current"><i class="fas fa-cloud-download-alt" aria-hidden="true"></i> Backup</a>
-                <a href="admin.php?tab=settings"><i class="fas fa-cog" aria-hidden="true"></i> Site settings</a>
-                <a href="admin.php?tab=contact"><i class="fas fa-phone-alt" aria-hidden="true"></i> Call now</a>
-                <a href="admin.php?tab=users"><i class="fas fa-users-cog" aria-hidden="true"></i> User Roles</a>
-                <a href="admin.php?tab=config"><i class="fas fa-server" aria-hidden="true"></i> Server Config</a>
-                <div class="menu-footer">
-                    <a href="admin.php?logout=1"><i class="fas fa-power-off" aria-hidden="true"></i> Log Out</a>
-                </div>
-            </nav>
+            <?php cms_render_admin_sidebar_nav(['mode' => 'fullpage', 'active' => 'backup']); ?>
 
             <div class="wp-admin-main">
                 <div class="wp-admin-toolbar">
@@ -253,7 +261,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['import_zip']) && is_
                         <?php
                         $backups = [];
                         foreach (glob($cmsRoot . '/*.zip') as $f) {
-                            $backups[] = ['name' => basename($f), 'size' => filesize($f), 'time' => filemtime($f)];
+                            $bn = basename($f);
+                            if (!backup_is_managed_backup_zip($bn)) {
+                                continue;
+                            }
+                            $backups[] = ['name' => $bn, 'size' => filesize($f), 'time' => filemtime($f)];
                         }
                         usort($backups, function ($a, $b) { return $b['time'] - $a['time']; });
                         ?>
@@ -289,7 +301,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['import_zip']) && is_
                                     </tbody>
                                 </table>
                             <?php else: ?>
-                                <p style="padding:16px;font-size:13px;color:var(--mid);margin:0;">No backup files yet. They will appear here after an Export or Import.</p>
+                                <p style="padding:16px;font-size:13px;color:var(--mid);margin:0;">No backup snapshots yet. Listed files are only automatic snapshots (<code>import_backup_*.zip</code>, <code>full_system_backup_*.zip</code>, <code>hard_restore_backup_*.zip</code>, or export-style <code>backup_YYYY-mm-dd_H-ii-ss.zip</code>). Other <code>.zip</code> files in the project (for example from an import) are not shown here.</p>
                             <?php endif; ?>
                             </div>
                         </div>

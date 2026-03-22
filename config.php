@@ -5,12 +5,12 @@ if (!defined('CMS_DATA_DIR')) {
     define('CMS_DATA_DIR', __DIR__ . '/pages_data/');
 }
 
-/** Public phone / WhatsApp — not editable in admin (edit here or `pages_data/site_settings.json`). */
+/** Fallback phone / WhatsApp when `site_settings.json` omits them (override in admin or JSON). */
 if (!defined('CMS_PUBLIC_PHONE')) {
-    define('CMS_PUBLIC_PHONE', '9987842957');
+    define('CMS_PUBLIC_PHONE', '1234567890');
 }
 if (!defined('CMS_PUBLIC_WHATSAPP')) {
-    define('CMS_PUBLIC_WHATSAPP', '9987842957');
+    define('CMS_PUBLIC_WHATSAPP', '+91 1234567890');
 }
 
 /**
@@ -90,14 +90,16 @@ function getSiteSettings() {
         return $cache;
     }
     $defaults = [
-        'brand'               => 'creativ3.co',
-        'phone'               => '9987842957',
-        'whatsapp'            => '9987842957',
+        'brand'               => 'SEO Website Designer',
+        'phone'               => '1234567890',
+        'whatsapp'            => '+91 1234567890',
         'default_lang'        => 'en',
         'site_tagline'        => '',
         'default_og_image'    => '',
         'robots_extra'        => '',
         'analytics_head_html' => '',
+        'inject_body_open_html' => '',
+        'inject_footer_html' => '',
         'maintenance_mode'     => false,
         'sticky_cta_layout'    => 'split',
         'cta_enable_call'      => true,
@@ -106,6 +108,7 @@ function getSiteSettings() {
         'cta_call_color'       => '#1d4ed8',
         'cta_call_color2'      => '#1e40af',
         'cta_call_label'       => 'Call',
+        'header_logo_url'      => '',
     ];
     $path = CMS_DATA_DIR . 'site_settings.json';
     if (!is_file($path)) {
@@ -162,13 +165,86 @@ function cms_default_og_image() {
     return trim((string) (getSiteSettings()['default_og_image'] ?? ''));
 }
 
+/** Sanitize stored header logo path or absolute URL. */
+function cms_sanitize_header_logo_url($raw) {
+    $s = trim((string) $raw);
+    if ($s === '') {
+        return '';
+    }
+    if (preg_match('#^(javascript|data|vbscript):#i', $s)) {
+        return '';
+    }
+    if (preg_match('#^https?://#i', $s)) {
+        return $s;
+    }
+    if (strpos($s, '..') !== false || preg_match('#[\s<>"\'{}|\\^`\[\]]#', $s)) {
+        return '';
+    }
+    if (preg_match('#^[a-zA-Z0-9._/-]+$#', $s)) {
+        return $s;
+    }
+    return '';
+}
+
+/**
+ * Save an uploaded header logo under uploads/. Caller must verify auth and CSRF.
+ *
+ * @param array $file Element of $_FILES (e.g. $_FILES['header_logo_file'])
+ * @return string Relative path such as uploads/header_logo_20260322_120000_ab12cd34.png, or null on failure.
+ */
+function cms_handle_header_logo_upload(array $file) {
+    if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+        return null;
+    }
+    $tmp = $file['tmp_name'] ?? '';
+    if ($tmp === '' || !is_uploaded_file($tmp)) {
+        return null;
+    }
+    $maxBytes = 3 * 1024 * 1024;
+    $size = (int) ($file['size'] ?? 0);
+    if ($size <= 0 || $size > $maxBytes) {
+        return null;
+    }
+    $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
+    $orig = basename((string) ($file['name'] ?? ''));
+    $ext = strtolower(pathinfo($orig, PATHINFO_EXTENSION));
+    if (!in_array($ext, $allowed, true)) {
+        return null;
+    }
+    $uploadDir = __DIR__ . '/uploads';
+    if (!is_dir($uploadDir) && !mkdir($uploadDir, 0755, true)) {
+        return null;
+    }
+    $destName = 'header_logo_' . gmdate('Ymd_His') . '_' . bin2hex(random_bytes(3)) . '.' . $ext;
+    $destPath = $uploadDir . '/' . $destName;
+    if (!move_uploaded_file($tmp, $destPath)) {
+        return null;
+    }
+    return 'uploads/' . $destName;
+}
+
+/** Absolute URL for header logo img src, or empty. */
+function cms_header_logo_url_resolved() {
+    $u = cms_sanitize_header_logo_url(getSiteSettings()['header_logo_url'] ?? '');
+    if ($u === '') {
+        return '';
+    }
+    if (preg_match('#^https?://#i', $u)) {
+        return $u;
+    }
+    return rtrim(cms_site_url(), '/') . '/' . ltrim($u, '/');
+}
+
 /**
  * Save whitelisted site settings (caller must enforce auth).
  */
 function cms_save_site_settings(array $input) {
     $allowed = [
         'brand', 'default_lang', 'site_tagline',
-        'default_og_image', 'robots_extra', 'analytics_head_html', 'maintenance_mode',
+        'default_og_image', 'robots_extra', 'analytics_head_html',
+        'inject_body_open_html', 'inject_footer_html',
+        'maintenance_mode',
+        'header_logo_url',
     ];
     $current = getSiteSettings();
     $out = [];
@@ -183,6 +259,8 @@ function cms_save_site_settings(array $input) {
                 $v = (in_array('1', $v, true) || in_array(1, $v, true) || in_array(true, $v, true)) ? '1' : '0';
             }
             $out[$key] = cms_normalize_maintenance_bool($v);
+        } elseif ($key === 'header_logo_url') {
+            $out[$key] = cms_sanitize_header_logo_url($input[$key] ?? '');
         } else {
             $out[$key] = is_string($input[$key]) ? $input[$key] : (string) $input[$key];
         }
@@ -437,6 +515,14 @@ function cms_render_seo_head(array $opts) {
     }
 }
 
+/** Echo trusted raw HTML from site settings (editable only in admin). */
+function cms_echo_site_html_snippet(string $settingKey) {
+    $h = trim((string) (getSiteSettings()[$settingKey] ?? ''));
+    if ($h !== '') {
+        echo $h . "\n";
+    }
+}
+
 function cms_nav_page_links_html() {
     include_once __DIR__ . '/cms_core.php';
     $html = '';
@@ -476,10 +562,23 @@ function getHeader($title) {
     $ctaLayout = cms_sticky_cta_layout();
     $stickyDesktop = cms_cta_sticky_desktop();
     $callLabel     = cms_cta_call_label();
+    $logoSrc       = cms_header_logo_url_resolved();
+    $headerSub     = cms_site_tagline();
+    $navBrandMod   = ($logoSrc !== '' || $headerSub !== '') ? ' nav-brand--rich' : ' nav-brand--gradient';
     ?>
     <style id="cms-cta-call-theme">:root{--cms-cta-call-a:<?php echo cms_escape($callC1); ?>;--cms-cta-call-b:<?php echo cms_escape($callC2); ?>;--cms-cta-call-pulse:<?php echo cms_escape($pulseRing); ?>;--cms-cta-call-pulse-fade:<?php echo cms_escape($pulseFade); ?>;--cms-cta-call-pulse-glow:<?php echo cms_escape($pulseGlow); ?>;--cms-cta-call-pulse-glow2:<?php echo cms_escape($pulseGlow2); ?>;}</style>
     <header class="glass-nav" role="banner">
-        <a href="<?php echo cms_escape(cms_home_url()); ?>" class="logo"><?php echo cms_escape($brand); ?></a>
+        <a href="<?php echo cms_escape(cms_home_url()); ?>" class="nav-brand<?php echo $navBrandMod; ?>" aria-label="<?php echo cms_escape($brand . ($headerSub !== '' ? ' ' . $headerSub : '')); ?>">
+            <?php if ($logoSrc !== ''): ?>
+            <img class="nav-brand__logo" src="<?php echo cms_escape($logoSrc); ?>" alt="" width="512" height="515" decoding="async" sizes="54px">
+            <?php endif; ?>
+            <span class="nav-brand__text">
+                <span class="nav-brand__name"><?php echo cms_escape($brand); ?></span>
+                <?php if ($headerSub !== ''): ?>
+                <span class="nav-brand__sub"><?php echo cms_escape($headerSub); ?></span>
+                <?php endif; ?>
+            </span>
+        </a>
 
         <button type="button" class="nav-menu-toggle" id="nav-menu-toggle" aria-expanded="false" aria-controls="site-nav-drawer" aria-label="Open menu">
             <span class="nav-menu-bar" aria-hidden="true"></span>
@@ -516,8 +615,18 @@ function getHeader($title) {
 
     <div class="nav-drawer-overlay" id="nav-drawer-overlay" aria-hidden="true"></div>
     <aside class="nav-drawer" id="site-nav-drawer" role="dialog" aria-modal="true" aria-label="Site menu" inert>
-        <div class="nav-drawer__head">
-            <span class="nav-drawer__title"><?php echo cms_escape($brand); ?></span>
+        <div class="nav-drawer__head<?php echo ($logoSrc !== '' || $headerSub !== '') ? ' nav-drawer__head--rich' : ''; ?>">
+            <div class="nav-drawer__brand">
+                <?php if ($logoSrc !== ''): ?>
+                <img class="nav-drawer__brand-logo" src="<?php echo cms_escape($logoSrc); ?>" alt="" width="512" height="515" decoding="async" sizes="44px">
+                <?php endif; ?>
+                <div class="nav-drawer__brand-text">
+                    <span class="nav-drawer__title"><?php echo cms_escape($brand); ?></span>
+                    <?php if ($headerSub !== ''): ?>
+                    <span class="nav-drawer__subtitle"><?php echo cms_escape($headerSub); ?></span>
+                    <?php endif; ?>
+                </div>
+            </div>
             <button type="button" class="nav-drawer__close" id="nav-drawer-close" aria-label="Close menu">&times;</button>
         </div>
         <nav class="nav-drawer__links" aria-label="Mobile primary">

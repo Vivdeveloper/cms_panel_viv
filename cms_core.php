@@ -225,12 +225,42 @@ if (isset($_POST['post_permanent_delete_page'])) {
 // --- POST: site settings & admin password & force patch ---
 if (isset($_POST['save_site_settings'])) {
     checkAdmin();
+    $returnTab = isset($_POST['admin_return_tab']) ? (string) $_POST['admin_return_tab'] : 'settings';
+    $validReturnTabs = ['settings', 'html_tags'];
+    if (!in_array($returnTab, $validReturnTabs, true)) {
+        $returnTab = 'settings';
+    }
     if (!cms_verify_csrf_post()) {
-        header('Location: admin.php?tab=settings&err=csrf');
+        header('Location: admin.php?tab=' . rawurlencode($returnTab) . '&err=csrf');
         exit;
     }
-    cms_save_site_settings($_POST);
-    header('Location: admin.php?tab=settings&settings_saved=1');
+    $post = $_POST;
+    $headerLogoUploadFailed = false;
+    $headerLogoUploadedOk = false;
+    $hf = $_FILES['header_logo_file'] ?? null;
+    if (is_array($hf) && array_key_exists('error', $hf)) {
+        $upErr = (int) $hf['error'];
+        if ($upErr === UPLOAD_ERR_OK) {
+            $uploaded = cms_handle_header_logo_upload($hf);
+            if ($uploaded !== null) {
+                $post['header_logo_url'] = $uploaded;
+                $headerLogoUploadedOk = true;
+            } else {
+                $headerLogoUploadFailed = true;
+            }
+        } elseif ($upErr !== UPLOAD_ERR_NO_FILE) {
+            $headerLogoUploadFailed = true;
+        }
+    }
+    if (!empty($_POST['header_logo_clear']) && !$headerLogoUploadedOk) {
+        $post['header_logo_url'] = '';
+    }
+    cms_save_site_settings($post);
+    if ($headerLogoUploadFailed) {
+        header('Location: admin.php?tab=' . rawurlencode($returnTab) . '&err=header_logo_upload');
+    } else {
+        header('Location: admin.php?tab=' . rawurlencode($returnTab) . '&settings_saved=1');
+    }
     exit;
 }
 
@@ -242,10 +272,6 @@ if (isset($_POST['save_contact_cta'])) {
     }
     $enCall = isset($_POST['cta_enable_call']) && $_POST['cta_enable_call'] === '1';
     $enWa   = isset($_POST['cta_enable_whatsapp']) && $_POST['cta_enable_whatsapp'] === '1';
-    if (!$enCall && !$enWa) {
-        header('Location: admin.php?tab=contact&err=cta_none');
-        exit;
-    }
     $layout = (string) ($_POST['sticky_cta_layout'] ?? 'split');
     $layout = ($layout === 'full') ? 'full' : 'split';
     cms_save_contact_settings(

@@ -57,6 +57,7 @@ $canonical = cms_home_url();
     </style>
 </head>
 <body>
+    <?php cms_echo_site_html_snippet('inject_body_open_html'); ?>
     <?php if ($homePage && ($homePage['status'] ?? 'draft') !== 'published' && cms_is_admin_preview()): ?>
     <div class="cms-draft-banner" role="status">Home page is a draft — public visitors still see the placeholder below until you publish.</div>
     <?php endif; ?>
@@ -82,6 +83,7 @@ $canonical = cms_home_url();
         </main>
     <?php endif; ?>
 
+    <?php cms_echo_site_html_snippet('inject_footer_html'); ?>
     <script src="main.js"></script>
 </body>
 </html>

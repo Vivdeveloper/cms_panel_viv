@@ -1,6 +1,7 @@
 <?php
 include 'config.php';
 include 'cms_core.php';
+require_once __DIR__ . '/admin_menu.php';
 
 if (!isset($_SESSION['is_admin']) || $_SESSION['is_admin'] !== true) {
     header("Location: admin.php");
@@ -104,7 +105,7 @@ $sysVer = getSystemVersion();
     <link rel="stylesheet" href="<?php echo cms_url('admin_style.css'); ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body class="wp-admin-skin">
+<body class="wp-admin-skin<?php echo cms_is_maintenance_mode() ? ' admin-public-maintenance' : ''; ?>">
     <div class="wp-admin-shell">
         <header class="wp-admin-bar" role="banner">
             <div class="wp-admin-bar-row">
@@ -131,20 +132,7 @@ $sysVer = getSystemVersion();
         </header>
 
         <div class="wp-admin-frame">
-            <div class="wp-admin-menu-backdrop" aria-hidden="true"></div>
-            <nav class="wp-admin-menu" id="wp-admin-menu" aria-label="Main menu">
-                <div class="menu-top">Navigation</div>
-                <a href="admin.php"><i class="fas fa-file-alt" aria-hidden="true"></i> Pages</a>
-                <a href="media_manager.php" class="current"><i class="fas fa-camera-retro" aria-hidden="true"></i> Media</a>
-                <a href="backup.php"><i class="fas fa-cloud-download-alt" aria-hidden="true"></i> Backup</a>
-                <a href="admin.php?tab=settings"><i class="fas fa-cog" aria-hidden="true"></i> Site settings</a>
-                <a href="admin.php?tab=contact"><i class="fas fa-phone-alt" aria-hidden="true"></i> Call now</a>
-                <a href="admin.php?tab=users"><i class="fas fa-users-cog" aria-hidden="true"></i> User Roles</a>
-                <a href="admin.php?tab=config"><i class="fas fa-server" aria-hidden="true"></i> Server Config</a>
-                <div class="menu-footer">
-                    <a href="admin.php?logout=1"><i class="fas fa-power-off" aria-hidden="true"></i> Log Out</a>
-                </div>
-            </nav>
+            <?php cms_render_admin_sidebar_nav(['mode' => 'fullpage', 'active' => 'media']); ?>
 
             <div class="wp-admin-main">
                 <div class="wp-admin-toolbar">
