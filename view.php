@@ -1,36 +1,6 @@
 <?php
-include 'config.php';
-include 'cms_core.php';
-
-/**
- * Resolve slug from ?page= (Apache rewrite) or from REQUEST_URI last segment (built-in server / proxies).
- */
-function cms_view_resolve_page_slug(): string {
-    if (!empty($_GET['page'])) {
-        $s = cms_sanitize_slug((string) $_GET['page']);
-        if ($s !== '') {
-            return $s;
-        }
-    }
-    $raw = parse_url((string) ($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH);
-    $raw = is_string($raw) ? str_replace('\\', '/', $raw) : '';
-    $path = trim($raw, '/');
-    $base = trim(str_replace('\\', '/', dirname((string) ($_SERVER['SCRIPT_NAME'] ?? '/'))), '/');
-    if ($base !== '' && $base !== '.' && $base !== '/' && strpos($path, $base . '/') === 0) {
-        $path = substr($path, strlen($base) + 1);
-    }
-    if (preg_match('#^view\.php/(.+)$#i', $path, $m)) {
-        $path = trim($m[1], '/');
-    }
-    $path = trim($path, '/');
-    if ($path === '' || strcasecmp($path, 'index.php') === 0 || strcasecmp($path, 'view.php') === 0) {
-        return '';
-    }
-    if (preg_match('#^[a-z0-9][a-z0-9\-]*$#', $path)) {
-        return cms_sanitize_slug($path);
-    }
-    return '';
-}
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/cms_core.php';
 
 if (cms_public_should_show_maintenance()) {
     http_response_code(503);
@@ -39,7 +9,7 @@ if (cms_public_should_show_maintenance()) {
     exit;
 }
 
-$slug = cms_view_resolve_page_slug();
+$slug = cms_request_inner_page_slug();
 if ($slug === '') {
     cms_send_404('Missing page.');
     exit;
@@ -64,6 +34,8 @@ $title = $page['title'] ?? ucwords(str_replace('-', ' ', $slug));
 $desc  = trim((string) ($page['meta_description'] ?? ''));
 $og    = trim((string) ($page['og_image'] ?? ''));
 $canonical = cms_page_url($slug);
+$pageTpl   = cms_normalize_page_template($page['page_template'] ?? 'default');
+$bodyTpl   = cms_page_template_body_classes($pageTpl);
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo cms_escape(cms_default_lang()); ?>">
@@ -84,7 +56,7 @@ $canonical = cms_page_url($slug);
     <link rel="stylesheet" href="<?php echo cms_escape(cms_url('public_style.css')); ?>">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-        .dynamic-container { margin-top: 150px; padding: 20px; }
+        .dynamic-container { margin-top: <?php echo $pageTpl === 'canvas' ? '0' : '150px'; ?>; padding: <?php echo $pageTpl === 'canvas' ? '24px 20px 80px' : '20px'; ?>; }
         .cms-draft-banner {
             position: fixed; top: 0; left: 0; right: 0; z-index: 99999;
             background: #b45309; color: #fff; text-align: center; padding: 8px 12px;
@@ -93,21 +65,25 @@ $canonical = cms_page_url($slug);
         <?php echo $page['css']; ?>
     </style>
 </head>
-<body>
+<body class="<?php echo cms_escape($bodyTpl); ?>">
     <?php cms_echo_site_html_snippet('inject_body_open_html'); ?>
     <?php if (!$published && cms_is_admin_preview()): ?>
     <div class="cms-draft-banner" role="status">Draft preview — not visible to the public. <a href="admin.php?edit=<?php echo cms_escape($slug); ?>" style="color:#fff;margin-left:8px;">Edit</a></div>
     <?php endif; ?>
     <div id="canvas-container"></div>
     <?php getPanel(); ?>
+    <?php if ($pageTpl !== 'canvas'): ?>
     <?php getHeader($title); ?>
+    <?php endif; ?>
 
     <main class="dynamic-container section">
         <?php echo cms_contact_flash_message_html(); ?>
         <?php echo cms_apply_page_shortcodes($page['html'], cms_page_url($slug)); ?>
     </main>
 
+    <?php if ($pageTpl !== 'canvas'): ?>
     <?php cms_echo_site_html_snippet('inject_footer_html'); ?>
+    <?php endif; ?>
     <script src="main.js"></script>
 </body>
 </html>

@@ -1,6 +1,15 @@
 <?php
-include 'config.php';
-include 'cms_core.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/cms_core.php';
+
+/*
+ * If this script handles a /page-slug URL (e.g. php -S localhost:9000 index.php routes all requests here),
+ * render the inner page instead of the homepage. Normal Apache + .htaccess sends /slug to view.php only.
+ */
+if (cms_request_inner_page_slug_from_path() !== '') {
+    require __DIR__ . '/view.php';
+    exit;
+}
 
 if (cms_public_should_show_maintenance()) {
     http_response_code(503);
@@ -17,6 +26,8 @@ $homeTitle = $homePage ? ($homePage['title'] ?? 'Home') : 'Home';
 $homeDesc  = $homePage ? trim((string) ($homePage['meta_description'] ?? '')) : '';
 $homeOg    = $homePage ? trim((string) ($homePage['og_image'] ?? '')) : '';
 $canonical = cms_home_url();
+$homeTpl   = $homePage ? cms_normalize_page_template($homePage['page_template'] ?? 'default') : 'default';
+$homeBodyTpl = cms_page_template_body_classes($homeTpl);
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo cms_escape(cms_default_lang()); ?>">
@@ -37,7 +48,7 @@ $canonical = cms_home_url();
     <link rel="stylesheet" href="<?php echo cms_escape(cms_url('public_style.css')); ?>">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-        .dynamic-container { margin-top: 150px; padding: 20px; }
+        .dynamic-container { margin-top: <?php echo ($homePage && $homeTpl === 'canvas') ? '0' : '150px'; ?>; padding: <?php echo ($homePage && $homeTpl === 'canvas') ? '24px 20px 80px' : '20px'; ?>; }
         .cms-draft-banner {
             position: fixed; top: 0; left: 0; right: 0; z-index: 99999;
             background: #b45309; color: #fff; text-align: center; padding: 8px 8px;
@@ -45,14 +56,16 @@ $canonical = cms_home_url();
         }
     </style>
 </head>
-<body>
+<body class="<?php echo cms_escape($homeBodyTpl); ?>">
     <?php cms_echo_site_html_snippet('inject_body_open_html'); ?>
     <?php if ($homePage && ($homePage['status'] ?? 'draft') !== 'published' && cms_is_admin_preview()): ?>
     <div class="cms-draft-banner" role="status">Home page is a draft — public visitors still see the placeholder below until you publish.</div>
     <?php endif; ?>
     <div id="canvas-container"></div>
     <?php getPanel(); ?>
+    <?php if (!$homePage || $homeTpl !== 'canvas'): ?>
     <?php getHeader('Home'); ?>
+    <?php endif; ?>
 
     <?php
     if ($homePage): ?>
@@ -73,7 +86,9 @@ $canonical = cms_home_url();
         </main>
     <?php endif; ?>
 
+    <?php if (!$homePage || $homeTpl !== 'canvas'): ?>
     <?php cms_echo_site_html_snippet('inject_footer_html'); ?>
+    <?php endif; ?>
     <script src="main.js"></script>
 </body>
 </html>

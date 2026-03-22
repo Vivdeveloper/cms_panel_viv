@@ -1,31 +1,18 @@
 <?php
 /**
- * Public site menu: inner-page URLs that work with Apache rewrites and with PHP’s built-in server.
+ * Public nav links for inner CMS pages — same URL shape as cms_page_url() (/page-slug).
  *
- * Requires config.php (cms_home_url, cms_page_url, cms_url, cms_escape) loaded first.
+ * Requires config.php (loads cms_routing.php + slug helpers, cms_page_url, cms_home_url, cms_escape).
+ *
+ * Local dev (built-in server does not read .htaccess):
+ *   php -S localhost:9000 router.php
  */
 
-/**
- * Built-in server without router.php does not apply .htaccess — clean /slug URLs 404.
- * In that case use view.php?page=slug so menu links still route correctly.
- */
-function cms_menu_cli_needs_query_inner_urls(): bool {
-    if (PHP_SAPI !== 'cli-server') {
-        return false;
-    }
-    $base = basename(str_replace('\\', '/', (string) ($_SERVER['SCRIPT_NAME'] ?? '')));
-
-    return strcasecmp($base, 'router.php') !== 0;
-}
-
-/** URL for a published inner page (used by header nav, drawers, etc.). */
+/** Href for one inner page in header / drawer menus. */
 function cms_menu_inner_page_url(string $slug): string {
     $slug = trim($slug);
     if ($slug === '') {
         return cms_home_url();
-    }
-    if (cms_menu_cli_needs_query_inner_urls()) {
-        return cms_url('view.php?page=' . rawurlencode($slug));
     }
 
     return cms_page_url($slug);
@@ -47,7 +34,9 @@ function cms_page_show_in_public_menu(array $p): bool {
  * Flat list of published inner-page links (desktop nav + mobile drawer), sorted by title.
  */
 function cms_nav_page_links_html(): string {
-    include_once __DIR__ . '/cms_core.php';
+    if (!function_exists('getAllCMSPages')) {
+        require_once __DIR__ . '/cms_core.php';
+    }
     $items = [];
     foreach (getAllCMSPages() as $p) {
         if ($p['is_home'] ?? false) {

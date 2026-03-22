@@ -120,6 +120,32 @@ function cms_skip_page_json($basename) {
     return in_array($basename, $skip, true);
 }
 
+/** @return 'default'|'full_width'|'canvas' */
+function cms_normalize_page_template($raw): string {
+    $t = strtolower(trim((string) $raw));
+    if ($t === 'full_width' || $t === 'full-width' || $t === 'fullwidth') {
+        return 'full_width';
+    }
+    if ($t === 'canvas') {
+        return 'canvas';
+    }
+
+    return 'default';
+}
+
+/** Public body classes for template CSS (default | full width | canvas). */
+function cms_page_template_body_classes(string $normalizedTpl): string {
+    $t = cms_normalize_page_template($normalizedTpl);
+    if ($t === 'full_width') {
+        return 'cms-tpl-full-width';
+    }
+    if ($t === 'canvas') {
+        return 'cms-tpl-canvas';
+    }
+
+    return 'cms-tpl-default';
+}
+
 // --- ACCESS CONTROL GATEKEEPER ---
 function checkAdmin() {
     if (!isset($_SESSION['is_admin']) || $_SESSION['is_admin'] !== true) {
@@ -188,13 +214,6 @@ function bumpVersion($type = 'patch', $status = 'System Update') {
     return $vData;
 }
 
-function cms_sanitize_slug($str) {
-    $str = strtolower(trim(preg_replace('/\s+/', '-', (string) $str)));
-    $str = preg_replace('/[^a-z0-9\-]/', '', $str);
-    $str = preg_replace('/-+/', '-', $str);
-    return trim($str, '-');
-}
-
 /** Basename only; must be a JSON file inside trash (no path segments). */
 function cms_is_safe_trash_basename($name) {
     if (!is_string($name) || $name === '' || strpos($name, "\0") !== false) {
@@ -227,6 +246,36 @@ if (isset($_POST['post_delete_page'])) {
         rename($src, $dest);
     }
     header('Location: admin.php?trashed=1');
+    exit;
+}
+
+// --- POST: toggle allow_in_menu from pages list ---
+if (isset($_POST['post_toggle_menu'])) {
+    cms_require_pages_write();
+    if (!cms_verify_csrf_post()) {
+        header('Location: admin.php?err=csrf');
+        exit;
+    }
+    $slug = cms_sanitize_slug($_POST['toggle_menu_slug'] ?? '');
+    if ($slug === '') {
+        header('Location: admin.php');
+        exit;
+    }
+    $path = $pagesDir . $slug . '.json';
+    if (!is_file($path)) {
+        header('Location: admin.php');
+        exit;
+    }
+    $d = json_decode((string) file_get_contents($path), true);
+    if (!is_array($d)) {
+        header('Location: admin.php');
+        exit;
+    }
+    $d['allow_in_menu'] = !cms_page_show_in_public_menu($d);
+    $d['updated'] = date('Y-m-d H:i:s');
+    file_put_contents($path, json_encode($d, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+    bumpVersion('patch', 'Toggle menu: ' . $slug);
+    header('Location: admin.php');
     exit;
 }
 
@@ -444,6 +493,31 @@ if (isset($_POST['force_patch_release'])) {
     exit;
 }
 
+/**
+ * If pages_data/{slug}.json already exists, append -2, -3, … (WordPress-style) until unused.
+ */
+if (!function_exists('cms_allocate_unique_page_slug')) {
+    function cms_allocate_unique_page_slug(string $desired): string {
+        global $pagesDir;
+        $s = cms_sanitize_slug($desired);
+        if ($s === '') {
+            return '';
+        }
+        $candidate = $s;
+        $n = 2;
+        while (is_file($pagesDir . $candidate . '.json')) {
+            $candidate = $s . '-' . $n;
+            $n++;
+            if ($n > 1002) {
+                $candidate = $s . '-' . bin2hex(random_bytes(3));
+                break;
+            }
+        }
+
+        return $candidate;
+    }
+}
+
 // --- PAGE ACTIONS ---
 if (isset($_POST['create_page'])) {
     cms_require_pages_write();
@@ -453,6 +527,7 @@ if (isset($_POST['create_page'])) {
     }
     $currentSlug = cms_sanitize_slug($_POST['current_slug'] ?? '');
     $newSlug     = cms_sanitize_slug($_POST['slug'] ?? '');
+    $title       = trim((string) ($_POST['page_title'] ?? ''));
 
     if ($currentSlug !== '') {
         if ($newSlug === '') {
@@ -473,17 +548,18 @@ if (isset($_POST['create_page'])) {
         }
     } else {
         if ($newSlug === '') {
+            $newSlug = cms_sanitize_slug($title);
+        }
+        if ($newSlug === '') {
             header('Location: admin.php?err=slug_empty');
             exit;
         }
-        if (file_exists($pagesDir . $newSlug . '.json')) {
-            header('Location: admin.php?err=slug_exists');
-            exit;
+        if (is_file($pagesDir . $newSlug . '.json')) {
+            $newSlug = cms_allocate_unique_page_slug($newSlug);
         }
     }
 
     $slug   = $newSlug;
-    $title  = trim($_POST['page_title'] ?? '');
     $html   = $_POST['html_content'] ?? '';
     $css    = $_POST['css_content'] ?? '';
     $isHome = isset($_POST['is_home']);
@@ -492,6 +568,7 @@ if (isset($_POST['create_page'])) {
 
     $metaDesc = trim((string) ($_POST['meta_description'] ?? ''));
     $ogImage  = trim((string) ($_POST['og_image'] ?? ''));
+    $pageTpl  = cms_normalize_page_template($_POST['page_template'] ?? 'default');
 
     $pageData = [
         'slug'             => $slug,
@@ -504,6 +581,7 @@ if (isset($_POST['create_page'])) {
         'updated'          => date('Y-m-d H:i:s'),
         'meta_description' => $metaDesc,
         'og_image'         => $ogImage,
+        'page_template'    => $pageTpl,
     ];
 
     if ($isHome) {

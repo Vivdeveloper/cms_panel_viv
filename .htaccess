@@ -28,6 +28,7 @@ Options -Indexes
     RewriteRule ^robots\.txt$ robots.php [L]
     RewriteRule ^sitemap\.xml$ sitemap.php [L]
 
+    # Same pattern as CMS_INNER_PAGE_URL_REGEX in cms_routing.php (and router.php for php -S).
     RewriteRule ^([a-z0-9][a-z0-9\-]*)/?$ view.php?page=$1 [L,QSA]
 </IfModule>
 

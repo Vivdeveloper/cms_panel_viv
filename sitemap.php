@@ -1,6 +1,6 @@
 <?php
-include 'config.php';
-include 'cms_core.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/cms_core.php';
 
 header('Content-Type: application/xml; charset=UTF-8');
 

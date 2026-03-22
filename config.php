@@ -5,6 +5,8 @@ if (!defined('CMS_DATA_DIR')) {
     define('CMS_DATA_DIR', __DIR__ . '/pages_data/');
 }
 
+require_once __DIR__ . '/cms_routing.php';
+
 header('X-Content-Type-Options: nosniff');
 header('X-Frame-Options: SAMEORIGIN');
 header('Referrer-Policy: strict-origin-when-cross-origin');
@@ -50,13 +52,16 @@ function cms_home_url() {
     return cms_site_url();
 }
 
-/** Clean public URL for an inner page (requires .htaccess rewrites on Apache). */
+/**
+ * Canonical public URL for an inner page: …/page-slug (Apache .htaccess or php -S router.php).
+ */
 function cms_page_url($slug) {
-    $slug = (string) $slug;
-    if ($slug === '') {
+    $s = cms_sanitize_slug((string) $slug);
+    if ($s === '') {
         return cms_home_url();
     }
-    return rtrim(cms_site_url(), '/') . '/' . rawurlencode($slug);
+
+    return rtrim(cms_site_url(), '/') . '/' . rawurlencode($s);
 }
 
 require_once __DIR__ . '/menu.php';
@@ -778,7 +783,9 @@ function getPanel() {
             <label style="display: block; color: #64748b; font-size: 14px; margin-bottom:10px;">Dynamic Design Archive</label>
             <div style="max-height: 150px; overflow-y: auto; background: rgba(15,23,42,0.04); border-radius: 8px; padding: 10px;">
                 <?php
-                include_once 'cms_core.php';
+                if (!function_exists('getAllCMSPages')) {
+                    require_once __DIR__ . '/cms_core.php';
+                }
                 $pages = getAllCMSPages();
                 foreach ($pages as $p): ?>
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; border-bottom:1px solid rgba(15,23,42,0.06); padding-bottom:5px;">

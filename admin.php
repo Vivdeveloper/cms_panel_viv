@@ -1,6 +1,6 @@
 <?php
-include 'config.php';
-include 'cms_core.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/cms_core.php';
 require_once __DIR__ . '/admin_menu.php';
 
 // Handle Logout
@@ -136,10 +136,14 @@ if (isset($_GET['edit'])) { $editData = getCMSPage($_GET['edit']); }
 
 $slugForForm = '';
 $permalinkPreview = 'your-slug';
+$editPageTemplate = 'default';
 if ($editData) {
+    $savedSlug = cms_sanitize_slug((string) ($editData['slug'] ?? ''));
     $titleSlug = cms_sanitize_slug($editData['title'] ?? '');
-    $slugForForm = ($titleSlug !== '') ? $titleSlug : ($editData['slug'] ?? '');
-    $permalinkPreview = $slugForForm !== '' ? $slugForForm : ($editData['slug'] ?? '');
+    // WordPress-style: permalink (file slug) is stable; it does not auto-change when the title changes.
+    $slugForForm = $savedSlug !== '' ? $savedSlug : $titleSlug;
+    $permalinkPreview = $slugForForm !== '' ? $slugForForm : 'your-slug';
+    $editPageTemplate = cms_normalize_page_template($editData['page_template'] ?? 'default');
 }
 
 $csrf = cms_csrf_token();
@@ -222,7 +226,7 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                 $errKey = isset($_GET['err']) ? (string) $_GET['err'] : '';
                 $errMsgs = [
                     'slug_exists' => 'That URL slug is already in use. Choose a different slug.',
-                    'slug_empty'  => 'Enter a URL slug (or use the title to generate one).',
+                    'slug_empty'  => 'Add a page title or enter a URL slug (permalink).',
                     'slug_rename' => 'Could not rename the page file. Check file permissions.',
                     'csrf'        => 'Security check failed. Reload the page and try again.',
                     'last_admin'  => 'You must keep at least one Administrator. Add or promote another admin before changing this.',
@@ -300,24 +304,44 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                     <div class="pages-list">
                         <?php foreach ($allPages as $p): ?>
                         <a href="admin.php?edit=<?php echo htmlspecialchars($p['slug'], ENT_QUOTES, 'UTF-8'); ?>" class="pages-list-item <?php echo (isset($_GET['edit']) && $_GET['edit'] === $p['slug']) ? 'is-active' : ''; ?>">
-                            <div class="pages-list-title">
-                                <?php echo htmlspecialchars($p['title'] ?? ucwords(str_replace('-', ' ', $p['slug']))); ?>
-                                <?php if($p['is_home'] ?? false): ?><span class="status-badge">Home</span><?php endif; ?>
-                            </div>
-                            <div class="pages-list-meta">
-                                <span class="page-status-dot <?php echo ($p['status'] ?? 'draft') === 'published' ? 'is-published' : 'is-draft'; ?>"></span>
-                                <?php echo ($p['status'] ?? 'draft') === 'published' ? 'Published' : 'Draft'; ?>
-                                &middot; <?php echo date('M d, Y', strtotime($p['updated'] ?? 'now')); ?>
-                            </div>
-                            <div class="pages-list-actions">
-                                <span onclick="event.preventDefault();event.stopPropagation();window.open('<?php echo htmlspecialchars(cms_page_url($p['slug']), ENT_QUOTES); ?>','_blank')">View</span>
-                                <span onclick="event.preventDefault();event.stopPropagation();window.open('<?php echo htmlspecialchars('download_page.php?slug=' . rawurlencode($p['slug']), ENT_QUOTES); ?>','_blank')">Download</span>
-                                <?php if (!$cmsPagesReadOnly): ?>
-                                <form method="post" action="admin.php" style="display:inline;margin:0;" onclick="event.stopPropagation();" onsubmit="return confirm('Trash this page?');">
+                            <div class="pages-list-item-inner">
+                                <div class="pages-list-item-main">
+                                    <div class="pages-list-title">
+                                        <?php echo htmlspecialchars($p['title'] ?? ucwords(str_replace('-', ' ', $p['slug']))); ?>
+                                        <?php if($p['is_home'] ?? false): ?><span class="status-badge">Home</span><?php endif; ?>
+                                    </div>
+                                    <div class="pages-list-meta">
+                                        <span class="page-status-dot <?php echo ($p['status'] ?? 'draft') === 'published' ? 'is-published' : 'is-draft'; ?>"></span>
+                                        <?php echo ($p['status'] ?? 'draft') === 'published' ? 'Published' : 'Draft'; ?>
+                                        &middot; <?php echo date('M d, Y', strtotime($p['updated'] ?? 'now')); ?>
+                                    </div>
+                                    <div class="pages-list-actions">
+                                        <span onclick="event.preventDefault();event.stopPropagation();window.open('<?php echo htmlspecialchars(cms_page_url($p['slug'] ?? ''), ENT_QUOTES); ?>','_blank')">View</span>
+                                        <span onclick="event.preventDefault();event.stopPropagation();cmsCopyPageUrl(<?php echo json_encode(cms_page_url($p['slug'] ?? ''), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>)">Copy URL</span>
+                                        <span onclick="event.preventDefault();event.stopPropagation();window.open('<?php echo htmlspecialchars('download_page.php?slug=' . rawurlencode(cms_sanitize_slug((string) ($p['slug'] ?? ''))), ENT_QUOTES); ?>','_blank')">Download</span>
+                                        <?php if (!$cmsPagesReadOnly): ?>
+                                        <form method="post" action="admin.php" style="display:inline;margin:0;" onclick="event.stopPropagation();" onsubmit="return confirm('Trash this page?');">
+                                            <input type="hidden" name="cms_csrf" value="<?php echo htmlspecialchars($csrf); ?>">
+                                            <input type="hidden" name="post_delete_page" value="1">
+                                            <input type="hidden" name="delete_slug" value="<?php echo htmlspecialchars($p['slug']); ?>">
+                                            <button type="submit" class="linklike" style="background:none;border:none;padding:0;font:inherit;color:inherit;cursor:pointer;" aria-label="Trash page">Trash</button>
+                                        </form>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                                <?php if (!$cmsPagesReadOnly):
+                                    $pageInMenu = cms_page_show_in_public_menu($p);
+                                    $menuTip = $pageInMenu
+                                        ? 'Shown in the public header menu — click to hide'
+                                        : 'Not in the public header menu — click to show';
+                                    ?>
+                                <form method="post" action="admin.php" class="pages-list-menu-toggle" onclick="event.stopPropagation();" onmousedown="event.stopPropagation();">
                                     <input type="hidden" name="cms_csrf" value="<?php echo htmlspecialchars($csrf); ?>">
-                                    <input type="hidden" name="post_delete_page" value="1">
-                                    <input type="hidden" name="delete_slug" value="<?php echo htmlspecialchars($p['slug']); ?>">
-                                    <button type="submit" class="linklike" style="background:none;border:none;padding:0;font:inherit;color:inherit;cursor:pointer;" aria-label="Trash page">Trash</button>
+                                    <input type="hidden" name="post_toggle_menu" value="1">
+                                    <input type="hidden" name="toggle_menu_slug" value="<?php echo htmlspecialchars($p['slug'], ENT_QUOTES, 'UTF-8'); ?>">
+                                    <button type="submit" class="button pages-list-menu-btn<?php echo $pageInMenu ? ' pages-list-menu-btn--on' : ' pages-list-menu-btn--off'; ?>" title="<?php echo htmlspecialchars($menuTip, ENT_QUOTES, 'UTF-8'); ?>" aria-label="<?php echo $pageInMenu ? 'Hide page from public menu' : 'Show page in public menu'; ?>">
+                                        <?php echo $pageInMenu ? 'Menu on' : 'Menu off'; ?>
+                                    </button>
                                 </form>
                                 <?php endif; ?>
                             </div>
@@ -968,12 +992,15 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                                 <input type="text" name="page_title" id="page_title" class="wp-input" placeholder="Page title" value="<?php echo $editData ? htmlspecialchars($editData['title'] ?? ucwords(str_replace('-', ' ', $editData['slug']))) : ''; ?>"<?php echo $pageEditorReadonly ? ' readonly' : ''; ?>>
                             </div>
                             <div class="form-group">
-                                <label for="page_slug">SLUG <span class="description" style="display:inline;font-weight:400;margin-left:4px;">(URL — edit anytime; Save applies)</span></label>
-                                <input type="text" name="slug" id="page_slug" class="wp-input" autocomplete="off" value="<?php echo $editData ? htmlspecialchars($slugForForm) : ''; ?>" placeholder="e.g. my-page" pattern="[a-z0-9\-]*" title="Lowercase letters, numbers, and hyphens only"<?php echo $pageEditorReadonly ? ' readonly' : ''; ?>>
+                                <label for="page_slug">URL slug <span class="description" style="display:inline;font-weight:400;margin-left:4px;">(last part of the permalink)</span></label>
+                                <input type="text" name="slug" id="page_slug" class="wp-input" autocomplete="off" value="<?php echo $editData ? htmlspecialchars($slugForForm) : ''; ?>" placeholder="<?php echo $editData ? 'e.g. my-service-page' : 'Leave blank to generate from title'; ?>" pattern="[a-z0-9\-]*" title="Lowercase letters, numbers, and hyphens only"<?php echo $pageEditorReadonly ? ' readonly' : ''; ?>>
                                 <p class="description" style="margin-top:8px;margin-bottom:0;display:flex;flex-wrap:wrap;align-items:center;gap:8px;">
-                                    <span>Permalink: <code id="permalink_preview" style="font-size:12px;word-break:break-all;"><?php echo htmlspecialchars($editData ? cms_page_url($permalinkPreview) : cms_page_url('your-slug')); ?></code></span>
+                                    <span>Permalink: <code id="permalink_preview" style="font-size:12px;word-break:break-all;"><?php echo htmlspecialchars(cms_page_url($permalinkPreview)); ?></code></span>
+                                    <?php if ($editData): ?>
+                                    <button type="button" class="button" id="copy_permalink_btn" style="height:26px;font-size:12px;padding:0 10px;">Copy URL</button>
+                                    <?php endif; ?>
                                     <?php if (!$pageEditorReadonly): ?>
-                                    <button type="button" class="button" id="slug_from_title" style="height:26px;font-size:12px;padding:0 10px;">Regenerate from title</button>
+                                    <button type="button" class="button" id="slug_from_title" style="height:26px;font-size:12px;padding:0 10px;">Update slug from title</button>
                                     <?php endif; ?>
                                 </p>
                             </div>
@@ -985,25 +1012,6 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                                 <label for="og_image">Open Graph image URL (optional)</label>
                                 <input type="url" id="og_image" name="og_image" class="wp-input" value="<?php echo $editData ? htmlspecialchars($editData['og_image'] ?? '') : ''; ?>" placeholder="https://..."<?php echo $pageEditorReadonly ? ' readonly' : ''; ?>>
                             </div>
-                            <div class="form-group">
-                                <label>HTML MODULES</label>
-                                <textarea name="html_content" class="wp-code wp-input"<?php echo $pageEditorReadonly ? ' readonly' : ''; ?>><?php echo $editData ? htmlspecialchars($editData['html']) : ''; ?></textarea>
-                            </div>
-                            <div class="form-group">
-                                <label>STYLING (CSS)</label>
-                                <textarea name="css_content" class="wp-code wp-input" style="height:150px;"<?php echo $pageEditorReadonly ? ' readonly' : ''; ?>><?php echo $editData ? htmlspecialchars($editData['css']) : ''; ?></textarea>
-                            </div>
-                            <div class="form-group">
-                                <label>STATUS</label>
-                                <select name="page_status" class="wp-input"<?php echo $pageEditorReadonly ? ' disabled' : ''; ?>>
-                                    <option value="draft" <?php echo ($editData && ($editData['status'] ?? 'draft') === 'draft') ? 'selected' : ''; ?>>Draft</option>
-                                    <option value="published" <?php echo ($editData && ($editData['status'] ?? 'draft') === 'published') ? 'selected' : ''; ?>>Published</option>
-                                </select>
-                            </div>
-                            <div style="display:flex; align-items:center; gap:10px; background:var(--wh); padding:10px 12px; border:1px solid var(--rule);">
-                                <input type="checkbox" name="is_home" id="is_home" <?php echo ($editData && ($editData['is_home'] ?? false)) ? 'checked' : ''; ?> style="width:18px; height:18px;"<?php echo $pageEditorReadonly ? ' disabled' : ''; ?>>
-                                <label for="is_home" style="margin:0; font-weight:600; font-size:13px;">Set as front page</label>
-                            </div>
                             <?php
                             $pageAllowMenuChecked = false;
                             if ($editData) {
@@ -1011,9 +1019,45 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                                     || filter_var($editData['allow_in_menu'], FILTER_VALIDATE_BOOLEAN);
                             }
                             ?>
-                            <div style="display:flex; align-items:center; gap:10px; background:var(--wh); padding:10px 12px; border:1px solid var(--rule);">
-                                <input type="checkbox" name="allow_in_menu" id="allow_in_menu" value="1" <?php echo $pageAllowMenuChecked ? 'checked' : ''; ?> style="width:18px; height:18px;"<?php echo $pageEditorReadonly ? ' disabled' : ''; ?>>
-                                <label for="allow_in_menu" style="margin:0; font-weight:600; font-size:13px;">Allow in menu</label>
+                            <div class="page-editor-options-grid" role="group" aria-label="Page template, status, and menu options">
+                                <div class="page-editor-options-grid__cell page-editor-options-grid__cell--template">
+                                    <div class="form-group">
+                                        <label for="page_template">PAGE TEMPLATE</label>
+                                        <select name="page_template" id="page_template" class="wp-input"<?php echo $pageEditorReadonly ? ' disabled' : ''; ?>>
+                                            <option value="default" <?php echo $editPageTemplate === 'default' ? 'selected' : ''; ?>>Default</option>
+                                            <option value="full_width" <?php echo $editPageTemplate === 'full_width' ? 'selected' : ''; ?>>Full width</option>
+                                            <option value="canvas" <?php echo $editPageTemplate === 'canvas' ? 'selected' : ''; ?>>Canvas</option>
+                                        </select>
+                                        <p class="field-hint page-editor-options-grid__hint">Full width: main content spans the browser width. Canvas: hides site header, drawer, sticky call bar, and footer snippet — Three.js background stays.</p>
+                                    </div>
+                                </div>
+                                <div class="page-editor-options-grid__cell page-editor-options-grid__cell--status">
+                                    <div class="form-group">
+                                        <label for="page_status">STATUS</label>
+                                        <select name="page_status" id="page_status" class="wp-input"<?php echo $pageEditorReadonly ? ' disabled' : ''; ?>>
+                                            <option value="draft" <?php echo ($editData && ($editData['status'] ?? 'draft') === 'draft') ? 'selected' : ''; ?>>Draft</option>
+                                            <option value="published" <?php echo ($editData && ($editData['status'] ?? 'draft') === 'published') ? 'selected' : ''; ?>>Published</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="page-editor-options-grid__cell page-editor-options-grid__cell--checks">
+                                    <div class="page-editor-option-tile">
+                                        <input type="checkbox" name="is_home" id="is_home" <?php echo ($editData && ($editData['is_home'] ?? false)) ? 'checked' : ''; ?> class="page-editor-option-tile__cb"<?php echo $pageEditorReadonly ? ' disabled' : ''; ?>>
+                                        <label for="is_home" class="page-editor-option-tile__label">Set as front page</label>
+                                    </div>
+                                    <div class="page-editor-option-tile">
+                                        <input type="checkbox" name="allow_in_menu" id="allow_in_menu" value="1" <?php echo $pageAllowMenuChecked ? 'checked' : ''; ?> class="page-editor-option-tile__cb"<?php echo $pageEditorReadonly ? ' disabled' : ''; ?>>
+                                        <label for="allow_in_menu" class="page-editor-option-tile__label">Allow in menu</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>HTML MODULES</label>
+                                <textarea name="html_content" class="wp-code wp-input"<?php echo $pageEditorReadonly ? ' readonly' : ''; ?>><?php echo $editData ? htmlspecialchars($editData['html']) : ''; ?></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>STYLING (CSS)</label>
+                                <textarea name="css_content" class="wp-code wp-input" style="height:150px;"<?php echo $pageEditorReadonly ? ' readonly' : ''; ?>><?php echo $editData ? htmlspecialchars($editData['css']) : ''; ?></textarea>
                             </div>
                         </div>
                     </form>
@@ -1177,6 +1221,70 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
             }
             hideTimer = setTimeout(dismiss, 5200);
             btn.addEventListener('click', dismiss);
+        })();
+        window.cmsCopyPageUrl = function (url) {
+            function showToast(msg) {
+                var el = document.createElement('div');
+                el.className = 'admin-save-toast';
+                el.setAttribute('role', 'status');
+                el.setAttribute('aria-live', 'polite');
+                el.appendChild(document.createTextNode(msg));
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'admin-save-toast__close';
+                btn.setAttribute('aria-label', 'Dismiss');
+                btn.textContent = '\u00D7';
+                el.appendChild(btn);
+                document.body.appendChild(el);
+                requestAnimationFrame(function () { el.classList.add('admin-save-toast--show'); });
+                function remove() {
+                    el.classList.remove('admin-save-toast--show');
+                    setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 300);
+                }
+                var hideTimer = setTimeout(remove, 3200);
+                btn.addEventListener('click', function () {
+                    clearTimeout(hideTimer);
+                    remove();
+                });
+            }
+            function fallbackCopy(u) {
+                var ta = document.createElement('textarea');
+                ta.value = u;
+                ta.setAttribute('readonly', '');
+                ta.style.position = 'fixed';
+                ta.style.left = '-9999px';
+                document.body.appendChild(ta);
+                ta.select();
+                try {
+                    document.execCommand('copy');
+                    showToast('URL copied to clipboard');
+                } catch (e4) {
+                    window.prompt('Copy this URL:', u);
+                }
+                document.body.removeChild(ta);
+            }
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(url).then(function () {
+                    showToast('URL copied to clipboard');
+                }).catch(function () { fallbackCopy(url); });
+            } else {
+                fallbackCopy(url);
+            }
+        };
+        window.cmsCopyPermalinkPreview = function () {
+            var permEl = document.getElementById('permalink_preview');
+            if (!permEl) return;
+            var t = (permEl.textContent || '').trim();
+            if (!t) return;
+            if (typeof cmsCopyPageUrl !== 'function') return;
+            cmsCopyPageUrl(t);
+        };
+        (function () {
+            var cpb = document.getElementById('copy_permalink_btn');
+            if (cpb) cpb.addEventListener('click', function (e) {
+                e.preventDefault();
+                cmsCopyPermalinkPreview();
+            });
         })();
         (function () {
             try {
@@ -1462,7 +1570,9 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
             var titleEl = document.getElementById('page_title');
             var slugEl = document.getElementById('page_slug');
             var permEl = document.getElementById('permalink_preview');
-            var slugTouched = false;
+            // New page: slug follows title until the user edits the slug (WordPress-style).
+            // Existing page: title edits do not change the slug unless “Update slug from title”.
+            var slugTouched = !isNew;
             var publicBase = <?php echo json_encode(rtrim(cms_site_url(), '/') . '/', JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 
             function clientSlugify(s) {

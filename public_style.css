@@ -211,18 +211,11 @@ body.nav-drawer-open .nav-menu-toggle .nav-menu-bar:nth-child(3) {
     text-decoration: none;
     font-weight: 500;
     font-size: 15px;
-    transition: color 0.25s;
 }
 
 .nav-links--desktop .nav-page-link {
     flex-shrink: 0;
     white-space: nowrap;
-    font-size: 13px;
-}
-
-.nav-links--desktop .nav-page-link:hover,
-.nav-drawer__link:hover {
-    color: var(--secondary);
 }
 
 /* Desktop header: same Call / WhatsApp design as sticky bar */
@@ -899,4 +892,31 @@ p.subtitle {
         padding-left: 20px;
         padding-right: 20px;
     }
+}
+
+/* —— Page templates (admin: Default | Full width | Canvas) —— */
+body.cms-tpl-full-width main.dynamic-container.section {
+    max-width: none;
+    width: 100%;
+    padding-left: clamp(16px, 4vw, 48px);
+    padding-right: clamp(16px, 4vw, 48px);
+    align-items: stretch;
+}
+
+body.cms-tpl-full-width main.dynamic-container.section .ref-wrap {
+    max-width: none;
+}
+
+body.cms-tpl-canvas .glass-nav,
+body.cms-tpl-canvas .nav-menu-toggle,
+body.cms-tpl-canvas .nav-drawer-overlay,
+body.cms-tpl-canvas .nav-drawer,
+body.cms-tpl-canvas .nav-sticky-cta {
+    display: none !important;
+}
+
+body.cms-tpl-canvas.has-sticky-cta,
+body.cms-tpl-canvas.has-sticky-cta.has-sticky-layout-full,
+body.cms-tpl-canvas.has-sticky-cta.has-sticky-desktop {
+    padding-bottom: 0 !important;
 }
