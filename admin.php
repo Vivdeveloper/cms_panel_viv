@@ -118,7 +118,8 @@ if (isset($_POST['add_user'])) {
         <div class="admin-sidebar">
             <h2><i class="fas fa-microchip"></i> AGENTIC CMS</h2>
             <nav style="flex:1;">
-                <a href="#" class="admin-nav-item active" onclick="showTab('pages')"><i class="fas fa-file-alt"></i> Page Builder</a>
+                <a href="#" id="link-all" class="admin-nav-item active" onclick="showTab('all-pages')"><i class="fas fa-layer-group"></i> All Designs</a>
+                <a href="#" id="link-add" class="admin-nav-item" onclick="showTab('pages')"><i class="fas fa-plus-circle"></i> Add New Page</a>
                 <a href="git_sync.php?logged_in=1" class="admin-nav-item"><i class="fab fa-github"></i> GitHub Sync Center</a>
                 <a href="#" class="admin-nav-item" onclick="showTab('users')"><i class="fas fa-users-cog"></i> User Roles</a>
                 <a href="#" class="admin-nav-item" onclick="showTab('settings')"><i class="fas fa-cog"></i> Server Config</a>
@@ -138,7 +139,7 @@ if (isset($_POST['add_user'])) {
 
             <header class="admin-header">
                 <div>
-                    <h1 style="margin:0; font-weight:800; color:var(--admin-text-dark);"><?php echo $editData['slug'] ? 'Edit Page: ' . $editData['slug'] : 'Dashboard Overview'; ?></h1>
+                    <h1 style="margin:0; font-weight:800; color:var(--admin-text-dark);" id="page-title"><?php echo $editData['slug'] ? 'Edit Page: ' . $editData['slug'] : 'Design Management'; ?></h1>
                     <p style="margin:5px 0 0; font-size:13px; color:#888;"><i class="fab fa-github"></i> <a href="https://github.com/<?php echo $repo; ?>" target="_blank" style="color:var(--admin-primary); text-decoration:none; font-weight:700;">View Repository on GitHub →</a></p>
                 </div>
                 <div class="user-profile" style="display:flex; align-items:center; gap:10px;">
@@ -147,9 +148,57 @@ if (isset($_POST['add_user'])) {
                 </div>
             </header>
 
-            <div id="pages-tab" class="tab-pane active">
+            <div id="all-pages-tab" class="tab-pane <?php echo !$editData['slug'] ? 'active' : ''; ?>">
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                    <h1 style="font-size:23px; font-weight:400; color:#1d2327; margin:0;">Pages</h1>
+                    <button class="admin-btn" onclick="showTab('pages')" style="background:#fff; border:1px solid #2271b1; color:#2271b1; padding:4px 10px; font-size:12px; font-weight:600; border-radius:3px;">Add New</button>
+                </div>
+
+                <ul class="wp-subsubsub">
+                    <li><a href="#" class="current">All (<?php echo count(getAllCMSPages()); ?>)</a> | </li>
+                    <li><a href="#">Published (<?php echo count(getAllCMSPages()); ?>)</a></li>
+                </ul>
+
+                <div class="admin-card" style="padding:0; box-shadow:none; border-radius:0;">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th style="width:120px;">Status</th>
+                                <th style="width:150px; text-align:right;">Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach (getAllCMSPages() as $p): ?>
+                            <tr>
+                                <td>
+                                    <strong style="display:block; font-size:14px;">
+                                        <a href="admin.php?edit=<?php echo $p['slug']; ?>&logged_in=1" style="color:#2271b1; text-decoration:none;">
+                                            <?php echo ucwords(str_replace('-', ' ', $p['slug'])); ?>
+                                            <?php if($p['is_home'] ?? false) echo ' — <span style="font-weight:400; color:#646970;">Front Page</span>'; ?>
+                                        </a>
+                                    </strong>
+                                    <div class="row-actions">
+                                        <a href="admin.php?edit=<?php echo $p['slug']; ?>&logged_in=1">Edit</a> | 
+                                        <a href="view.php?page=<?php echo $p['slug']; ?>" target="_blank">View</a> | 
+                                        <a href="admin.php?delete=<?php echo $p['slug']; ?>&logged_in=1" class="delete" onclick="return confirm('Move this design to trash?')">Trash</a>
+                                    </div>
+                                </td>
+                                <td><span style="font-size:13px; color:#50575e;">Published</span></td>
+                                <td style="text-align:right; font-size:13px; color:#646970;">
+                                    <?php echo date('Y/m/d'); ?><br>
+                                    <span style="font-size:11px;">Published</span>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="pages-tab" class="tab-pane <?php echo $editData['slug'] ? 'active' : ''; ?>">
                 <div class="admin-card">
-                    <h4 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:15px; margin-bottom:20px;"><i class="fas fa-plus-circle"></i> Design Canvas</h4>
+                    <h4 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:15px; margin-bottom:20px;"><i class="fas fa-plus-circle"></i> <?php echo $editData['slug'] ? 'Edit Page Canvas' : 'New Page Canvas'; ?></h4>
                     <form action="admin.php?logged_in=1" method="POST">
                         <div class="admin-input-group">
                             <label>PAGE URL SLUG</label>
@@ -173,36 +222,8 @@ if (isset($_POST['add_user'])) {
                         </div>
 
                         <button name="create_page" class="admin-btn"><i class="fas fa-save"></i> <?php echo $editData['slug'] ? 'Update Design' : 'Publish Design'; ?></button>
+                        <a href="admin.php?logged_in=1" style="margin-left:15px; color:var(--admin-text-light); text-decoration:none; font-size:0.9rem;"><i class="fas fa-times"></i> Cancel & Back to List</a>
                     </form>
-                </div>
-
-                <div class="admin-card">
-                    <h4 style="margin-top:0;"><i class="fas fa-layer-group"></i> Dynamic Design Archive</h4>
-                    <table class="admin-table">
-                        <thead>
-                            <tr>
-                                <th>Design Slug / Path</th>
-                                <th>Status</th>
-                                <th style="text-align:right;">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach (getAllCMSPages() as $p): ?>
-                            <tr>
-                                <td style="font-weight:700; color:var(--admin-text-dark);">
-                                    /view.php?page=<?php echo $p['slug']; ?>
-                                    <?php if($p['is_home'] ?? false) echo '<span class="badge-home">LIVE HOME</span>'; ?>
-                                </td>
-                                <td><span style="background:rgba(28,200,138,0.1); color:#1cc88a; padding:4px 10px; border-radius:20px; font-size:0.75rem; font-weight:800;">Active</span></td>
-                                <td class="page-actions" style="text-align:right; gap:15px; display:flex; justify-content:flex-end;">
-                                    <a href="view.php?page=<?php echo $p['slug']; ?>" title="Preview LIVE" target="_blank"><i class="fas fa-external-link-alt"></i></a>
-                                    <a href="admin.php?edit=<?php echo $p['slug']; ?>&logged_in=1" title="Modify Design"><i class="fas fa-edit"></i></a>
-                                    <a href="admin.php?delete=<?php echo $p['slug']; ?>&logged_in=1" class="btn-delete" onclick="return confirm('Archive this design?')" title="Delete Permanent"><i class="fas fa-trash-alt"></i></a>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
                 </div>
             </div>
 
@@ -269,11 +290,35 @@ if (isset($_POST['add_user'])) {
     </div>
 
     <script>
+        // Automatic Tab Handling for Editing
+        <?php if($editData['slug']): ?>
+            document.addEventListener('DOMContentLoaded', () => {
+                showTab('pages');
+            });
+        <?php else: ?>
+            document.addEventListener('DOMContentLoaded', () => {
+                showTab('all-pages');
+            });
+        <?php endif; ?>
+
         function showTab(id) {
             document.querySelectorAll('.tab-pane').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.admin-nav-item').forEach(l => l.classList.remove('active'));
-            document.getElementById(id + '-tab').classList.add('active');
-            event.currentTarget.classList.add('active');
+            
+            const targetTab = document.getElementById(id + '-tab');
+            if(targetTab) targetTab.classList.add('active');
+            
+            // Link Mapping
+            const linkAdd = document.getElementById('link-add');
+            const linkAll = document.getElementById('link-all');
+            
+            if(id === 'pages') {
+                if(linkAdd) linkAdd.classList.add('active');
+                if(linkAll) linkAll.classList.remove('active');
+            } else if(id === 'all-pages') {
+                if(linkAll) linkAll.classList.add('active');
+                if(linkAdd) linkAdd.classList.remove('active');
+            }
         }
     </script>
 </body>

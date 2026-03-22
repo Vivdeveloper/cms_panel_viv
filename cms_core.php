@@ -30,18 +30,17 @@ if (isset($_POST['create_page'])) {
         }
 
         file_put_contents($pagesDir . $slug . '.json', json_encode($pageData));
-        header("Location: cms_admin.php?logged_in=1&success=1");
+        header("Location: admin.php?logged_in=1&success=1");
         exit;
     }
 }
 
 // Delete Page Logic
 if (isset($_GET['delete'])) {
-    $slug = $_GET['delete'];
     if (file_exists($pagesDir . $slug . '.json')) {
         unlink($pagesDir . $slug . '.json');
     }
-    header("Location: cms_admin.php");
+    header("Location: admin.php?logged_in=1&deleted=1");
     exit;
 }
 

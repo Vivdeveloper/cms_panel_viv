@@ -44,12 +44,29 @@ function getPanel() {
             <select id="branch-select" class="panel-select">
                 <option value="main">main</option>
                 <option value="master">master</option>
-                <option value="dev">dev</option>
-                <option value="staging">staging</option>
             </select>
-            <div id="branch-status" style="font-size: 11px; color: #4facfe; margin-top: 5px;">GitHub Dynamic Sync Integrated</div>
+            <div id="branch-status" style="font-size: 11px; color: #4facfe; margin-top: 5px;">GitHub Sync Active</div>
         </div>
-        <button class="panel-btn" onclick="saveSettings()">Apply Dynamic Update</button>
+
+        <div style="margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px;">
+            <label style="display: block; color: #aaa; font-size: 14px; margin-bottom:10px;">Dynamic Design Archive</label>
+            <div style="max-height: 150px; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 10px;">
+                <?php 
+                include_once 'cms_core.php';
+                $pages = getAllCMSPages();
+                foreach($pages as $p): ?>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; border-bottom:1px solid rgba(255,255,255,0.03); padding-bottom:5px;">
+                    <span style="font-size:12px; color:#fff;"><?php echo $p['slug']; ?></span>
+                    <div>
+                        <a href="view.php?page=<?php echo $p['slug']; ?>" style="color:#00f2fe; font-size:11px; text-decoration:none; margin-right:10px;">View</a>
+                        <a href="admin.php?edit=<?php echo $p['slug']; ?>&logged_in=1" style="color:#4facfe; font-size:11px; text-decoration:none;">Edit</a>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
+        <button class="panel-btn" onclick="saveSettings()" style="margin-top:20px;">Apply Dynamic Update</button>
         <div style="margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px; text-align: center;">
             <a href="admin.php" style="color: #00f2fe; font-size: 14px; text-decoration: none; font-weight: 700;">✨ Professional Admin Dashboard</a>
         </div>
