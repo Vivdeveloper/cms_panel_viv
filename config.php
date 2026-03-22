@@ -59,6 +59,8 @@ function cms_page_url($slug) {
     return rtrim(cms_site_url(), '/') . '/' . rawurlencode($slug);
 }
 
+require_once __DIR__ . '/menu.php';
+
 function cms_invalidate_site_settings() {
     $GLOBALS['_cms_site_settings_dirty'] = true;
 }
@@ -609,22 +611,6 @@ function cms_echo_site_html_snippet(string $settingKey) {
     if ($h !== '') {
         echo $h . "\n";
     }
-}
-
-function cms_nav_page_links_html() {
-    include_once __DIR__ . '/cms_core.php';
-    $html = '';
-    foreach (getAllCMSPages() as $p) {
-        if ($p['is_home'] ?? false) {
-            continue;
-        }
-        if (($p['status'] ?? 'draft') !== 'published') {
-            continue;
-        }
-        $label = ucwords(str_replace('-', ' ', $p['slug']));
-        $html .= '<a class="nav-page-link" href="' . cms_escape(cms_page_url($p['slug'])) . '">' . cms_escape($label) . '</a>';
-    }
-    return $html;
 }
 
 function getHeader($title) {

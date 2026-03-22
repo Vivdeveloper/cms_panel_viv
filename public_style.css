@@ -183,14 +183,26 @@ body.nav-drawer-open .nav-menu-toggle .nav-menu-bar:nth-child(3) {
     transform: translateY(-7px) rotate(-45deg);
 }
 
+/* One row: horizontal scroll when many pages (all service centers stay visible as links) */
 .nav-links--desktop {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     align-items: center;
-    gap: clamp(16px, 2vw, 28px);
+    gap: clamp(8px, 1vw, 16px);
     flex: 1;
-    justify-content: center;
+    justify-content: flex-start;
     min-width: 0;
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    padding: 4px 2px 8px;
+}
+
+@media (min-width: 1400px) {
+    .nav-links--desktop {
+        justify-content: center;
+    }
 }
 
 .nav-links--desktop .nav-page-link,
@@ -200,6 +212,12 @@ body.nav-drawer-open .nav-menu-toggle .nav-menu-bar:nth-child(3) {
     font-weight: 500;
     font-size: 15px;
     transition: color 0.25s;
+}
+
+.nav-links--desktop .nav-page-link {
+    flex-shrink: 0;
+    white-space: nowrap;
+    font-size: 13px;
 }
 
 .nav-links--desktop .nav-page-link:hover,

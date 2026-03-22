@@ -2,6 +2,36 @@
 include 'config.php';
 include 'cms_core.php';
 
+/**
+ * Resolve slug from ?page= (Apache rewrite) or from REQUEST_URI last segment (built-in server / proxies).
+ */
+function cms_view_resolve_page_slug(): string {
+    if (!empty($_GET['page'])) {
+        $s = cms_sanitize_slug((string) $_GET['page']);
+        if ($s !== '') {
+            return $s;
+        }
+    }
+    $raw = parse_url((string) ($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH);
+    $raw = is_string($raw) ? str_replace('\\', '/', $raw) : '';
+    $path = trim($raw, '/');
+    $base = trim(str_replace('\\', '/', dirname((string) ($_SERVER['SCRIPT_NAME'] ?? '/'))), '/');
+    if ($base !== '' && $base !== '.' && $base !== '/' && strpos($path, $base . '/') === 0) {
+        $path = substr($path, strlen($base) + 1);
+    }
+    if (preg_match('#^view\.php/(.+)$#i', $path, $m)) {
+        $path = trim($m[1], '/');
+    }
+    $path = trim($path, '/');
+    if ($path === '' || strcasecmp($path, 'index.php') === 0 || strcasecmp($path, 'view.php') === 0) {
+        return '';
+    }
+    if (preg_match('#^[a-z0-9][a-z0-9\-]*$#', $path)) {
+        return cms_sanitize_slug($path);
+    }
+    return '';
+}
+
 if (cms_public_should_show_maintenance()) {
     http_response_code(503);
     header('Content-Type: text/html; charset=UTF-8');
@@ -9,7 +39,7 @@ if (cms_public_should_show_maintenance()) {
     exit;
 }
 
-$slug = isset($_GET['page']) ? cms_sanitize_slug($_GET['page']) : '';
+$slug = cms_view_resolve_page_slug();
 if ($slug === '') {
     cms_send_404('Missing page.');
     exit;
