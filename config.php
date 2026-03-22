@@ -45,9 +45,9 @@ function cms_url($file = '') {
     return cms_site_url() . ltrim($file, '/');
 }
 
-/** Public home URL (works without mod_rewrite). */
+/** Public home URL (directory root; no index.php in links — Apache: see .htaccess). */
 function cms_home_url() {
-    return cms_url('index.php');
+    return cms_site_url();
 }
 
 /** Clean public URL for an inner page (requires .htaccess rewrites on Apache). */
@@ -533,10 +533,10 @@ function cms_send_404($message = 'Page not found') {
     <title>404 — <?php echo cms_escape($brand); ?></title>
     <link rel="stylesheet" href="<?php echo cms_escape(cms_url('public_style.css')); ?>">
 </head>
-<body style="background:#050505;color:#fff;font-family:system-ui,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;margin:0;">
+<body style="background:#eef2f7;color:#0f172a;font-family:system-ui,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;margin:0;">
     <main style="text-align:center;padding:2rem;max-width:28rem;">
         <h1 style="font-size:1.5rem;margin:0 0 0.75rem;color:#4facfe;">404</h1>
-        <p style="color:#aaa;margin:0 0 1.5rem;line-height:1.5;"><?php echo cms_escape($message); ?></p>
+        <p style="color:#64748b;margin:0 0 1.5rem;line-height:1.5;"><?php echo cms_escape($message); ?></p>
         <a href="<?php echo cms_escape($home); ?>" style="display:inline-block;background:#4facfe;color:#050505;padding:10px 22px;border-radius:8px;text-decoration:none;font-weight:700;">Back to home</a>
     </main>
 </body>
@@ -780,7 +780,7 @@ function getPanel() {
         <button onclick="togglePanel(false)" style="position: absolute; top: 20px; right: 20px; background: none; border: none; color: #555; cursor: pointer; font-size: 24px;">&times;</button>
         <h2 style="margin-bottom: 20px; font-size: 24px; font-weight: 700; background: linear-gradient(45deg, #00f2fe, #4facfe); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Admin Control Panel</h2>
         <div style="margin-bottom: 20px;">
-            <label style="display: block; color: #aaa; font-size: 14px;">Select Dynamic Branch</label>
+            <label style="display: block; color: #64748b; font-size: 14px;">Select Dynamic Branch</label>
             <select id="branch-select" class="panel-select">
                 <option value="main">main</option>
                 <option value="master">master</option>
@@ -788,15 +788,15 @@ function getPanel() {
             <div id="branch-status" style="font-size: 11px; color: #4facfe; margin-top: 5px;">GitHub Sync Active</div>
         </div>
 
-        <div style="margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px;">
-            <label style="display: block; color: #aaa; font-size: 14px; margin-bottom:10px;">Dynamic Design Archive</label>
-            <div style="max-height: 150px; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 10px;">
+        <div style="margin-top: 20px; border-top: 1px solid rgba(15,23,42,0.08); padding-top: 10px;">
+            <label style="display: block; color: #64748b; font-size: 14px; margin-bottom:10px;">Dynamic Design Archive</label>
+            <div style="max-height: 150px; overflow-y: auto; background: rgba(15,23,42,0.04); border-radius: 8px; padding: 10px;">
                 <?php
                 include_once 'cms_core.php';
                 $pages = getAllCMSPages();
                 foreach ($pages as $p): ?>
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; border-bottom:1px solid rgba(255,255,255,0.03); padding-bottom:5px;">
-                    <span style="font-size:12px; color:#fff;"><?php echo cms_escape($p['slug']); ?></span>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; border-bottom:1px solid rgba(15,23,42,0.06); padding-bottom:5px;">
+                    <span style="font-size:12px; color:#0f172a;"><?php echo cms_escape($p['slug']); ?></span>
                     <div>
                         <a href="<?php echo cms_escape(cms_page_url($p['slug'])); ?>" style="color:#00f2fe; font-size:11px; text-decoration:none; margin-right:10px;">View</a>
                         <a href="admin.php?edit=<?php echo cms_escape($p['slug']); ?>" style="color:#4facfe; font-size:11px; text-decoration:none;">Edit</a>
@@ -807,13 +807,13 @@ function getPanel() {
         </div>
 
         <button class="panel-btn" onclick="saveSettings()" style="margin-top:20px;">Apply Dynamic Update</button>
-        <div style="margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px; text-align: center;">
+        <div style="margin-top: 15px; border-top: 1px solid rgba(15,23,42,0.08); padding-top: 10px; text-align: center;">
             <a href="admin.php" style="color: #00f2fe; font-size: 14px; text-decoration: none; font-weight: 700;">✨ Professional Admin Dashboard</a>
         </div>
         <div style="margin-top: 5px; text-align: center;">
             <a href="panel.php" style="color: #4facfe; font-size: 13px; text-decoration: none; font-weight: 500;">Open Private Full-Screen Dashboard →</a>
         </div>
-        <p style="font-size: 11px; color: #444; margin-top: 15px; text-align: center;">Continuous Deployment: Active</p>
+        <p style="font-size: 11px; color: #64748b; margin-top: 15px; text-align: center;">Continuous Deployment: Active</p>
     </div>
 <?php
 }

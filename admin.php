@@ -200,7 +200,7 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                     </div>
                 </div>
                 <div class="wp-admin-bar-secondary">
-                    <a href="index.php" target="_blank" rel="noopener" class="wp-bar-visit"><i class="fas fa-external-link-alt" aria-hidden="true"></i><span>View site</span></a>
+                    <a href="<?php echo cms_escape(cms_home_url()); ?>" target="_blank" rel="noopener" class="wp-bar-visit"><i class="fas fa-external-link-alt" aria-hidden="true"></i><span>View site</span></a>
                     <span class="wp-bar-user">
                         <?php
                         $barUname = cms_session_username();

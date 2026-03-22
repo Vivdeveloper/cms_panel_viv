@@ -5,22 +5,12 @@ include 'cms_core.php';
 if (cms_public_should_show_maintenance()) {
     http_response_code(503);
     header('Content-Type: text/html; charset=UTF-8');
-    echo '<!DOCTYPE html><html lang="' . cms_escape(cms_default_lang()) . '"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Maintenance — ' . cms_escape(cms_brand()) . '</title><link rel="stylesheet" href="' . cms_escape(cms_url('public_style.css')) . '"></head><body style="background:#050505;color:#fff;font-family:system-ui,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;margin:0;"><p style="color:#888;">We are updating the site. Please check back shortly.</p></body></html>';
+    echo '<!DOCTYPE html><html lang="' . cms_escape(cms_default_lang()) . '"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Maintenance — ' . cms_escape(cms_brand()) . '</title><link rel="stylesheet" href="' . cms_escape(cms_url('public_style.css')) . '"></head><body style="background:#eef2f7;color:#0f172a;font-family:system-ui,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;margin:0;"><p style="color:#64748b;">We are updating the site. Please check back shortly.</p></body></html>';
     exit;
 }
 
 $pages = getAllCMSPages();
-$homePage = null;
-foreach ($pages as $p) {
-    if (!($p['is_home'] ?? false)) {
-        continue;
-    }
-    $pub = (($p['status'] ?? 'draft') === 'published');
-    if ($pub || cms_is_admin_preview()) {
-        $homePage = $p;
-        break;
-    }
-}
+$homePage = cms_resolve_home_page_for_index($pages);
 
 $brand = cms_brand();
 $homeTitle = $homePage ? ($homePage['title'] ?? 'Home') : 'Home';
@@ -47,7 +37,6 @@ $canonical = cms_home_url();
     <link rel="stylesheet" href="<?php echo cms_escape(cms_url('public_style.css')); ?>">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-        body { background: #050505; color: #fff; }
         .dynamic-container { margin-top: 150px; padding: 20px; }
         .cms-draft-banner {
             position: fixed; top: 0; left: 0; right: 0; z-index: 99999;
@@ -74,9 +63,9 @@ $canonical = cms_home_url();
         </main>
     <?php else: ?>
         <main class="section" style="text-align:center; padding-top:100px;">
-            <div style="background:rgba(255,255,255,0.03); border:1px dashed rgba(255,255,255,0.1); padding: 50px; border-radius: 20px; max-width: 600px; margin: 0 auto;">
+            <div style="background:#fff; border:1px dashed rgba(15,23,42,0.15); padding: 50px; border-radius: 20px; max-width: 600px; margin: 0 auto; box-shadow:0 8px 30px rgba(15,23,42,0.06);">
                 <h2 style="color: #4facfe; margin-bottom: 15px;">Default design page not found</h2>
-                <p style="color: #666; font-size: 16px;">Please select your dynamic design from the Admin Panel and mark it as 'Home'.</p>
+                <p style="color: #475569; font-size: 16px;">Please select your dynamic design from the Admin Panel and mark it as 'Home'.</p>
                 <div style="margin-top:25px;">
                     <a href="admin.php" style="background: #4facfe; color: black; padding: 12px 25px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size:14px;">Open Admin Panel</a>
                 </div>

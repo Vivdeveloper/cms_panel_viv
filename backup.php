@@ -208,7 +208,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['import_zip']) && is_
                     </div>
                 </div>
                 <div class="wp-admin-bar-secondary">
-                    <a href="index.php" target="_blank" rel="noopener" class="wp-bar-visit"><i class="fas fa-external-link-alt" aria-hidden="true"></i><span>View site</span></a>
+                    <a href="<?php echo cms_escape(cms_home_url()); ?>" target="_blank" rel="noopener" class="wp-bar-visit"><i class="fas fa-external-link-alt" aria-hidden="true"></i><span>View site</span></a>
                     <span class="wp-bar-user">
                         <span class="wp-bar-avatar" aria-hidden="true">A</span>
                         <span class="wp-bar-greet">Howdy, <strong>admin</strong></span>

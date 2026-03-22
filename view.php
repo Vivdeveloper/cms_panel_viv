@@ -5,7 +5,7 @@ include 'cms_core.php';
 if (cms_public_should_show_maintenance()) {
     http_response_code(503);
     header('Content-Type: text/html; charset=UTF-8');
-    echo '<!DOCTYPE html><html lang="' . cms_escape(cms_default_lang()) . '"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Maintenance — ' . cms_escape(cms_brand()) . '</title><link rel="stylesheet" href="' . cms_escape(cms_url('public_style.css')) . '"></head><body style="background:#050505;color:#fff;font-family:system-ui,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;margin:0;"><p style="color:#888;">We are updating the site. Please check back shortly.</p></body></html>';
+    echo '<!DOCTYPE html><html lang="' . cms_escape(cms_default_lang()) . '"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Maintenance — ' . cms_escape(cms_brand()) . '</title><link rel="stylesheet" href="' . cms_escape(cms_url('public_style.css')) . '"></head><body style="background:#eef2f7;color:#0f172a;font-family:system-ui,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;margin:0;"><p style="color:#64748b;">We are updating the site. Please check back shortly.</p></body></html>';
     exit;
 }
 
@@ -54,7 +54,6 @@ $canonical = cms_page_url($slug);
     <link rel="stylesheet" href="<?php echo cms_escape(cms_url('public_style.css')); ?>">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-        body { background: #050505; color: #fff; }
         .dynamic-container { margin-top: 150px; padding: 20px; }
         .cms-draft-banner {
             position: fixed; top: 0; left: 0; right: 0; z-index: 99999;

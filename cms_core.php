@@ -640,6 +640,62 @@ function getAllCMSPages() {
     return $pages;
 }
 
+/**
+ * Which page JSON to render on index.php: marked Home (published, or draft while admin preview),
+ * else published slug home/index, else most recently updated published page.
+ * If a page is marked is_home but only exists as draft, public visitors get null (placeholder), not another page.
+ */
+function cms_resolve_home_page_for_index(array $pages): ?array {
+    $preview = cms_is_admin_preview();
+
+    foreach ($pages as $p) {
+        if (!($p['is_home'] ?? false)) {
+            continue;
+        }
+        $pub = (($p['status'] ?? 'draft') === 'published');
+        if ($pub || $preview) {
+            return $p;
+        }
+    }
+
+    $hasHomeFlag = false;
+    foreach ($pages as $p) {
+        if ($p['is_home'] ?? false) {
+            $hasHomeFlag = true;
+            break;
+        }
+    }
+    if ($hasHomeFlag && !$preview) {
+        return null;
+    }
+
+    foreach (['home', 'index'] as $slug) {
+        foreach ($pages as $p) {
+            if (($p['slug'] ?? '') !== $slug) {
+                continue;
+            }
+            $pub = (($p['status'] ?? 'draft') === 'published');
+            if ($pub || $preview) {
+                return $p;
+            }
+        }
+    }
+
+    $published = [];
+    foreach ($pages as $p) {
+        if (($p['status'] ?? 'draft') === 'published') {
+            $published[] = $p;
+        }
+    }
+    if ($published === []) {
+        return null;
+    }
+    usort($published, function ($a, $b) {
+        return strcmp((string) ($b['updated'] ?? ''), (string) ($a['updated'] ?? ''));
+    });
+    return $published[0];
+}
+
 function getTrashedCMSPages() {
     global $trashDir;
     if (!is_dir($trashDir)) {

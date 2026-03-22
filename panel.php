@@ -23,11 +23,12 @@ if (!isset($_SESSION['is_admin']) || $_SESSION['is_admin'] !== true) {
             gap: 20px;
         }
         .admin-card {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: #fff;
+            border: 1px solid rgba(15, 23, 42, 0.1);
             padding: 25px;
             border-radius: 15px;
             text-align: left;
+            box-shadow: 0 8px 30px rgba(15, 23, 42, 0.06);
         }
         .admin-card h4 {
             color: #4facfe;
@@ -35,9 +36,9 @@ if (!isset($_SESSION['is_admin']) || $_SESSION['is_admin'] !== true) {
             font-size: 18px;
         }
         .admin-input {
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: #fff;
+            background: #f8fafc;
+            border: 1px solid rgba(15, 23, 42, 0.12);
+            color: #0f172a;
             padding: 10px;
             width: 100%;
             border-radius: 8px;

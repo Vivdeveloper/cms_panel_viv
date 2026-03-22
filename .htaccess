@@ -6,6 +6,14 @@ Options -Indexes
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
+    # Homepage at / (internal rewrite; URL bar stays without index.php)
+    RewriteRule ^$ index.php [L]
+
+    # Canonical URL: direct /index.php requests → / (THE_REQUEST avoids loops on internal rewrites)
+    RewriteCond %{THE_REQUEST} ^[A-Z]{3,9}\s[^\s]+\sHTTP/ [NC]
+    RewriteCond %{THE_REQUEST} index\.php [NC]
+    RewriteRule ^index\.php$ ./ [R=301,L]
+
     RewriteRule ^pages_data/ - [F,L]
     RewriteRule ^users_data/ - [F,L]
 
