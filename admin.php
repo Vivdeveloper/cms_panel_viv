@@ -1004,6 +1004,17 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                                 <input type="checkbox" name="is_home" id="is_home" <?php echo ($editData && ($editData['is_home'] ?? false)) ? 'checked' : ''; ?> style="width:18px; height:18px;"<?php echo $pageEditorReadonly ? ' disabled' : ''; ?>>
                                 <label for="is_home" style="margin:0; font-weight:600; font-size:13px;">Set as front page</label>
                             </div>
+                            <?php
+                            $pageAllowMenuChecked = false;
+                            if ($editData) {
+                                $pageAllowMenuChecked = !array_key_exists('allow_in_menu', $editData)
+                                    || filter_var($editData['allow_in_menu'], FILTER_VALIDATE_BOOLEAN);
+                            }
+                            ?>
+                            <div style="display:flex; align-items:center; gap:10px; background:var(--wh); padding:10px 12px; border:1px solid var(--rule);">
+                                <input type="checkbox" name="allow_in_menu" id="allow_in_menu" value="1" <?php echo $pageAllowMenuChecked ? 'checked' : ''; ?> style="width:18px; height:18px;"<?php echo $pageEditorReadonly ? ' disabled' : ''; ?>>
+                                <label for="allow_in_menu" style="margin:0; font-weight:600; font-size:13px;">Allow in menu</label>
+                            </div>
                         </div>
                     </form>
                     <?php endif; ?>

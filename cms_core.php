@@ -487,6 +487,7 @@ if (isset($_POST['create_page'])) {
     $html   = $_POST['html_content'] ?? '';
     $css    = $_POST['css_content'] ?? '';
     $isHome = isset($_POST['is_home']);
+    $allowInMenu = isset($_POST['allow_in_menu']);
     $status = ($_POST['page_status'] ?? 'draft') === 'published' ? 'published' : 'draft';
 
     $metaDesc = trim((string) ($_POST['meta_description'] ?? ''));
@@ -498,6 +499,7 @@ if (isset($_POST['create_page'])) {
         'html'             => $html,
         'css'              => $css,
         'is_home'          => $isHome,
+        'allow_in_menu'    => $allowInMenu,
         'status'           => $status,
         'updated'          => date('Y-m-d H:i:s'),
         'meta_description' => $metaDesc,
