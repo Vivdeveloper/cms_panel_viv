@@ -1,7 +1,7 @@
 {
     "brand": "Viek",
-    "phone": "1234567890",
-    "whatsapp": "+91 1234567890",
+    "phone": "9987842957",
+    "whatsapp": "+91 9987842957",
     "default_lang": "en",
     "site_tagline": "sfrfe",
     "default_og_image": "",
@@ -17,5 +17,46 @@
     "cta_call_color": "#00944f",
     "cta_call_color2": "#1eae49",
     "cta_call_label": "Call 13",
-    "header_logo_url": "uploads\/header_logo_20260322_143024_e75a26.png"
+    "header_logo_url": "uploads\/header_logo_20260322_143024_e75a26.png",
+    "contact_form_to_email": "matmovie01@gmail.com",
+    "contact_form_subject": "New contact from {site}",
+    "contact_form_use_custom": true,
+    "contact_form_fields": [
+        {
+            "name": "full_name",
+            "label": "Full Name",
+            "type": "text",
+            "required": true
+        },
+        {
+            "name": "mobile",
+            "label": "Mobile Number",
+            "type": "tel",
+            "required": true
+        },
+        {
+            "name": "email",
+            "label": "Email",
+            "type": "email",
+            "required": true
+        },
+        {
+            "name": "warranty",
+            "label": "Yes\/No Warranty",
+            "type": "select",
+            "required": true,
+            "options": [
+                "Yes",
+                "No"
+            ]
+        }
+    ],
+    "smtp_enabled": false,
+    "smtp_host": "",
+    "smtp_port": 587,
+    "smtp_encryption": "tls",
+    "smtp_user": "",
+    "smtp_pass": "",
+    "smtp_from_email": "",
+    "smtp_from_name": ""
 }
