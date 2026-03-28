@@ -766,22 +766,17 @@ function cms_cta_whatsapp_svg() {
 }
 
 function getPanel() {
+    if (!isset($_SESSION['is_admin']) || $_SESSION['is_admin'] !== true) {
+        return;
+    }
     ?>
     <div id="control-panel">
         <button onclick="togglePanel(false)" style="position: absolute; top: 20px; right: 20px; background: none; border: none; color: #555; cursor: pointer; font-size: 24px;">&times;</button>
-        <h2 style="margin-bottom: 20px; font-size: 24px; font-weight: 700; background: linear-gradient(45deg, #00f2fe, #4facfe); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Admin Control Panel</h2>
-        <div style="margin-bottom: 20px;">
-            <label style="display: block; color: #64748b; font-size: 14px;">Select Dynamic Branch</label>
-            <select id="branch-select" class="panel-select">
-                <option value="main">main</option>
-                <option value="master">master</option>
-            </select>
-            <div id="branch-status" style="font-size: 11px; color: #4facfe; margin-top: 5px;">GitHub Sync Active</div>
-        </div>
-
-        <div style="margin-top: 20px; border-top: 1px solid rgba(15,23,42,0.08); padding-top: 10px;">
-            <label style="display: block; color: #64748b; font-size: 14px; margin-bottom:10px;">Dynamic Design Archive</label>
-            <div style="max-height: 150px; overflow-y: auto; background: rgba(15,23,42,0.04); border-radius: 8px; padding: 10px;">
+        <h2 style="margin-bottom: 20px; font-size: 24px; font-weight: 700; background: linear-gradient(45deg, #00f2fe, #4facfe); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Quick Navigation</h2>
+        
+        <div style="margin-top: 10px;">
+            <label style="display: block; color: #64748b; font-size: 14px; margin-bottom:10px;">All CMS Pages</label>
+            <div style="max-height: 350px; overflow-y: auto; background: rgba(15,23,42,0.04); border-radius: 8px; padding: 10px;">
                 <?php
                 if (!function_exists('getAllCMSPages')) {
                     require_once __DIR__ . '/cms_core.php';
@@ -799,14 +794,12 @@ function getPanel() {
             </div>
         </div>
 
-        <button class="panel-btn" onclick="saveSettings()" style="margin-top:20px;">Apply Dynamic Update</button>
-        <div style="margin-top: 15px; border-top: 1px solid rgba(15,23,42,0.08); padding-top: 10px; text-align: center;">
+        <div style="margin-top: 25px; border-top: 1px solid rgba(15,23,42,0.08); padding-top: 15px; text-align: center;">
             <a href="admin.php" style="color: #00f2fe; font-size: 14px; text-decoration: none; font-weight: 700;">✨ Professional Admin Dashboard</a>
         </div>
-        <div style="margin-top: 5px; text-align: center;">
-            <a href="panel.php" style="color: #4facfe; font-size: 13px; text-decoration: none; font-weight: 500;">Open Private Full-Screen Dashboard →</a>
+        <div style="margin-top: 10px; text-align: center;">
+            <a href="panel.php" style="color: #4facfe; font-size: 13px; text-decoration: none; font-weight: 500;">Full-Screen Private Dashboard →</a>
         </div>
-        <p style="font-size: 11px; color: #64748b; margin-top: 15px; text-align: center;">Continuous Deployment: Active</p>
     </div>
 <?php
 }

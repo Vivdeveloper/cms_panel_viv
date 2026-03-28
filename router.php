@@ -40,6 +40,19 @@ if ($uri !== '/' && $uri !== '' && is_dir($path)) {
     return false;
 }
 
+// Smart Media Routing: If file not in root, check in uploads/
+$mediaExts = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'pdf', 'mp4', 'mp3', 'zip'];
+$uriExt = strtolower(pathinfo($uri, PATHINFO_EXTENSION));
+if (in_array($uriExt, $mediaExts, true)) {
+    $uploadPath = $docroot . '/uploads' . $uri;
+    if (is_file($uploadPath)) {
+        $mime = mime_content_type($uploadPath) ?: 'application/octet-stream';
+        header("Content-Type: $mime");
+        readfile($uploadPath);
+        return true;
+    }
+}
+
 if ($uri === '/' || $uri === '') {
     require $docroot . '/index.php';
     return true;

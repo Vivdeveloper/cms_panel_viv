@@ -13,7 +13,6 @@ if (!isset($_SESSION['is_admin']) || $_SESSION['is_admin'] !== true) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - <?php echo htmlspecialchars(cms_brand()); ?></title>
     <link rel="stylesheet" href="<?php echo cms_url('public_style.css'); ?>">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         .admin-grid {
             margin-top: 30px;
@@ -56,30 +55,18 @@ if (!isset($_SESSION['is_admin']) || $_SESSION['is_admin'] !== true) {
     </style>
 </head>
 <body>
-    <div id="canvas-container"></div>
     <?php getPanel(); // Include the hidden secret panel too ?>
     <?php getHeader('Admin'); ?>
 
     <main class="section">
         <h1>Admin <span class="gradient-text">Dashboard</span></h1>
-        <p class="subtitle">Full-screen management for your GitHub & FTP deployments.</p>
+        <p class="subtitle">Quick access to all your CMS pages and system settings.</p>
 
-        <div class="admin-grid" style="grid-template-columns: 1fr; max-width: 600px; margin: 30px auto;">
-            <!-- GitHub Card -->
-            <div class="admin-card">
-                <span class="status-badge">Live Sync Active</span>
-                <h4>Branch Selection</h4>
-                <select class="admin-input" id="admin-branch">
-                    <option value="main">main</option>
-                    <option value="master">master</option>
-                    <option value="dev">dev</option>
-                    <option value="staging">staging</option>
-                </select>
-                <button class="panel-btn" onclick="saveSettings()">Apply Dynamic Update</button>
-            </div>
+        <div style="margin-top: 50px; text-align: center;">
+            <a href="admin.php" class="panel-btn" style="display: inline-block; text-decoration: none;">Open Page Editor</a>
         </div>
         
-        <p style="margin-top: 40px; color: #555; font-size: 14px;">Hint: You can open the secret quick-panel from any page with the same shortcut you use for the admin login.</p>
+        <p style="margin-top: 60px; color: #555; font-size: 14px; text-align: center;">Hint: Use your secret code to open the quick-navigation panel from anywhere on the site.</p>
     </main>
 
     <script src="main.js"></script>

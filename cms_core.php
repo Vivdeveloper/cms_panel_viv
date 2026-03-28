@@ -260,7 +260,7 @@ function cms_normalize_page_template($raw): string {
         return 'canvas';
     }
 
-    return 'default';
+    return 'full_width';
 }
 
 /** Public body classes for template CSS (default | full width | canvas). */
@@ -273,7 +273,7 @@ function cms_page_template_body_classes(string $normalizedTpl): string {
         return 'cms-tpl-canvas';
     }
 
-    return 'cms-tpl-default';
+    return 'cms-tpl-full-width';
 }
 
 // --- ACCESS CONTROL GATEKEEPER ---
@@ -691,7 +691,8 @@ if (isset($_POST['create_page'])) {
 
     $slug   = $newSlug;
     $html   = $_POST['html_content'] ?? '';
-    $css    = $_POST['css_content'] ?? '';
+    // Single editor: styles and scripts are now combined in html_content.
+    $css    = ''; 
     $isHome = isset($_POST['is_home']);
     $allowInMenu = isset($_POST['allow_in_menu']);
     $status = ($_POST['page_status'] ?? 'draft') === 'published' ? 'published' : 'draft';

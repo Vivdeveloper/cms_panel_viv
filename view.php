@@ -53,15 +53,21 @@ $bodyTpl   = cms_page_template_body_classes($pageTpl);
         'lang'        => cms_default_lang(),
     ]);
     ?>
+    <?php if ($pageTpl !== 'canvas'): ?>
     <link rel="stylesheet" href="<?php echo cms_escape(cms_url('public_style.css')); ?>">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <?php endif; ?>
     <style>
-        .dynamic-container { margin-top: <?php echo $pageTpl === 'canvas' ? '0' : '150px'; ?>; padding: <?php echo $pageTpl === 'canvas' ? '24px 20px 80px' : '20px'; ?>; }
         .cms-draft-banner {
             position: fixed; top: 0; left: 0; right: 0; z-index: 99999;
             background: #b45309; color: #fff; text-align: center; padding: 8px 12px;
-            font-size: 13px; font-weight: 600;
+            font-size: 13px; font-weight: 600; font-family: sans-serif;
         }
+        <?php if ($pageTpl === 'canvas'): ?>
+        html, body { margin: 0; padding: 0; width: 100%; min-height: 100vh; background: transparent; }
+        .dynamic-container { margin: 0 !important; padding: 0 !important; width: 100%; max-width: none; }
+        <?php else: ?>
+        .dynamic-container { margin-top: 0; padding: 0; }
+        <?php endif; ?>
         <?php echo $page['css']; ?>
     </style>
 </head>
@@ -70,8 +76,9 @@ $bodyTpl   = cms_page_template_body_classes($pageTpl);
     <?php if (!$published && cms_is_admin_preview()): ?>
     <div class="cms-draft-banner" role="status">Draft preview — not visible to the public. <a href="admin.php?edit=<?php echo cms_escape($slug); ?>" style="color:#fff;margin-left:8px;">Edit</a></div>
     <?php endif; ?>
-    <div id="canvas-container"></div>
+    <?php if ($pageTpl !== 'canvas'): ?>
     <?php getPanel(); ?>
+    <?php endif; ?>
     <?php if ($pageTpl !== 'canvas'): ?>
     <?php getHeader($title); ?>
     <?php endif; ?>
@@ -84,6 +91,8 @@ $bodyTpl   = cms_page_template_body_classes($pageTpl);
     <?php if ($pageTpl !== 'canvas'): ?>
     <?php cms_echo_site_html_snippet('inject_footer_html'); ?>
     <?php endif; ?>
+    <?php if ($pageTpl !== 'canvas'): ?>
     <script src="main.js"></script>
+    <?php endif; ?>
 </body>
 </html>

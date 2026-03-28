@@ -984,6 +984,7 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                             ?></h3>
                             <div class="edit-header-actions" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
                                 <?php if ($editData): ?>
+                                <a href="<?php echo htmlspecialchars(cms_page_url($editData['slug'])); ?>" class="button button-secondary edit-header-btn-secondary" target="_blank" rel="noopener">View Page</a>
                                 <a href="download_page.php?slug=<?php echo urlencode($editData['slug']); ?>" class="button edit-header-btn-secondary" target="_blank" rel="noopener" title="One .html file — CSS in &lt;style&gt;, page HTML in &lt;body&gt;">Download HTML</a>
                                 <?php endif; ?>
                                 <?php if (!$pageEditorReadonly): ?>
@@ -1032,11 +1033,10 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                                     <div class="form-group">
                                         <label for="page_template">PAGE TEMPLATE</label>
                                         <select name="page_template" id="page_template" class="wp-input"<?php echo $pageEditorReadonly ? ' disabled' : ''; ?>>
-                                            <option value="default" <?php echo $editPageTemplate === 'default' ? 'selected' : ''; ?>>Default</option>
                                             <option value="full_width" <?php echo $editPageTemplate === 'full_width' ? 'selected' : ''; ?>>Full width</option>
                                             <option value="canvas" <?php echo $editPageTemplate === 'canvas' ? 'selected' : ''; ?>>Canvas</option>
                                         </select>
-                                        <p class="field-hint page-editor-options-grid__hint">Full width: main content spans the browser width. Canvas: hides site header, drawer, sticky call bar, and footer snippet — Three.js background stays.</p>
+                                        <p class="field-hint page-editor-options-grid__hint">Full width: main content spans the browser width. Canvas: a completely blank, full-screen canvas (hides header, footer, etc.) — Three.js background stays.</p>
                                     </div>
                                 </div>
                                 <div class="page-editor-options-grid__cell page-editor-options-grid__cell--status">
@@ -1060,12 +1060,17 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                                 </div>
                             </div>
                             <div class="form-group">
-                                <label>HTML MODULES</label>
-                                <textarea name="html_content" class="wp-code wp-input"<?php echo $pageEditorReadonly ? ' readonly' : ''; ?>><?php echo $editData ? htmlspecialchars($editData['html']) : ''; ?></textarea>
-                            </div>
-                            <div class="form-group">
-                                <label>STYLING (CSS)</label>
-                                <textarea name="css_content" class="wp-code wp-input" style="height:150px;"<?php echo $pageEditorReadonly ? ' readonly' : ''; ?>><?php echo $editData ? htmlspecialchars($editData['css']) : ''; ?></textarea>
+                                <label>PAGE CONTENT (HTML, CSS, JS)</label>
+                                <textarea name="html_content" class="wp-code wp-input" style="height:450px;"<?php echo $pageEditorReadonly ? ' readonly' : ''; ?>><?php 
+                                    if ($editData) {
+                                        $mainH = (string) ($editData['html'] ?? '');
+                                        $sepC  = trim((string) ($editData['css'] ?? ''));
+                                        if ($sepC !== '') {
+                                            $mainH .= "\n\n<style>\n" . $sepC . "\n</style>";
+                                        }
+                                        echo htmlspecialchars($mainH);
+                                    } 
+                                ?></textarea>
                             </div>
                         </div>
                     </form>
@@ -1641,7 +1646,7 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
 
             function clientSlugify(s) {
                 if (!s) return '';
-                s = s.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9\-]/g, '').replace(/-+/g, '-');
+                s = String(s).toLowerCase().trim().replace(/[\s_]+/g, '-').replace(/[^a-z0-9\-]/g, '').replace(/-+/g, '-');
                 return s.replace(/^-+|-+$/g, '');
             }
             function updatePermalink() {
@@ -1684,6 +1689,7 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                     checkDirty();
                 });
                 slugEl.addEventListener('input', function () {
+                    slugEl.value = slugEl.value.replace(/[\s_]+/g, '-').toLowerCase();
                     slugTouched = true;
                     updatePermalink();
                     checkDirty();
