@@ -20,7 +20,8 @@
     box-sizing: border-box;
 }
 
-body, html {
+body,
+html {
     width: 100%;
     height: 100%;
     overflow-x: hidden;
@@ -209,161 +210,9 @@ body.nav-drawer-open .nav-menu-toggle .nav-menu-bar:nth-child(3) {
     white-space: nowrap;
 }
 
-/* Desktop header: same Call / WhatsApp design as sticky bar */
-.nav-cta--desktop.nav-cta--dup-sticky {
-    display: none;
-    align-items: stretch;
-    gap: 0;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.12);
-    flex-shrink: 0;
-}
-
-@media (min-width: 1024px) {
-    .nav-cta--desktop.nav-cta--dup-sticky {
-        display: flex;
-    }
-}
-
-.nav-cta--dup-sticky.nav-cta--split {
-    flex-direction: row;
-}
-
-.nav-cta--dup-sticky.nav-cta--full {
-    flex-direction: column;
-    min-width: 200px;
-}
-
-.nav-cta--dup-sticky.nav-cta--split .nav-sticky-cta__btn--call {
-    border-right: 1px solid rgba(255, 255, 255, 0.22);
-    border-bottom: none;
-}
-
-.nav-cta--dup-sticky.nav-cta--full .nav-sticky-cta__btn--call {
-    border-right: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.22);
-}
-
-.nav-cta--dup-sticky .nav-sticky-cta__btn {
-    flex: 1;
-    min-height: 48px;
-}
-
-.nav-cta--dup-sticky.nav-cta--count-1 .nav-sticky-cta__btn {
-    width: 100%;
-}
-
-.cta-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 16px;
-    border-radius: 12px;
-    text-decoration: none;
-    color: #fff;
-    font-weight: 600;
-    font-size: 14px;
-    line-height: 1.2;
-    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-    border: 1px solid transparent;
-}
-
-.cta-btn__text {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    text-align: left;
-}
-
-.cta-btn__label {
-    font-size: 13px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-}
-
-.cta-btn__sub {
-    font-size: 11px;
-    font-weight: 500;
-    opacity: 0.85;
-}
-
-.cta-btn__icon .cta-svg {
-    display: block;
-    flex-shrink: 0;
-}
-
-.cta-btn--call {
-    background: linear-gradient(135deg, var(--cms-cta-call-a, #1d4ed8), var(--cms-cta-call-b, #1e40af));
-    border-color: rgba(255, 255, 255, 0.15);
-}
-
-.cta-btn--call:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(79, 172, 254, 0.35);
-}
-
-.cta-btn--whatsapp {
-    background: linear-gradient(135deg, #25D366, #128C7E);
-}
-
-.cta-btn--whatsapp:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(37, 211, 102, 0.35);
-}
-
-.cta-btn--block {
-    width: 100%;
-    justify-content: center;
-    padding: 14px 18px;
-    min-height: 52px;
-}
-
-/* Call button: expanding ring + soft glow + brightness pulse (colors from admin pickers) */
-.nav-sticky-cta__btn--call.cta-pulse,
-.nav-cta--dup-sticky .nav-sticky-cta__btn--call.cta-pulse,
-.cta-btn--call.cta-pulse {
-    animation:
-        ctaCallPulseRing 2s ease-in-out infinite,
-        ctaCallPulseShine 2.6s ease-in-out infinite;
-}
-
-@keyframes ctaCallPulseRing {
-    0%,
-    100% {
-        box-shadow:
-            0 0 0 0 var(--cms-cta-call-pulse, rgba(79, 172, 254, 0.5)),
-            0 0 12px 0 var(--cms-cta-call-pulse-glow, rgba(79, 172, 254, 0.3));
-    }
-
-    50% {
-        box-shadow:
-            0 0 0 16px var(--cms-cta-call-pulse-fade, rgba(79, 172, 254, 0)),
-            0 0 24px 2px var(--cms-cta-call-pulse-glow2, rgba(79, 172, 254, 0.14));
-    }
-}
-
-@keyframes ctaCallPulseShine {
-    0%,
-    100% {
-        filter: brightness(1);
-    }
-
-    50% {
-        filter: brightness(1.1) saturate(1.06);
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .nav-sticky-cta__btn--call.cta-pulse,
-    .nav-cta--dup-sticky .nav-sticky-cta__btn--call.cta-pulse,
-    .cta-btn--call.cta-pulse {
-        animation: none;
-        box-shadow: 0 0 0 2px var(--cms-cta-call-pulse-glow, rgba(79, 172, 254, 0.35));
-        filter: none;
-    }
-}
+/* 
+   CMS Modular Styles: CTA logic migrated to cms_cta.css 
+*/
 
 /* Drawer overlay */
 .nav-drawer-overlay {
@@ -501,23 +350,7 @@ body.nav-drawer-open .nav-menu-toggle .nav-menu-bar:nth-child(3) {
     flex-shrink: 0;
 }
 
-.nav-drawer__cta.nav-cta--dup-sticky {
-    gap: 0;
-    border-radius: 12px;
-    margin: 12px 16px calc(16px + env(safe-area-inset-bottom, 0));
-    padding: 0;
-    overflow: hidden;
-    border-top: none;
-    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.12);
-}
-
-.nav-drawer__cta.nav-cta--dup-sticky.nav-cta--split {
-    flex-direction: row;
-}
-
-.nav-drawer__cta.nav-cta--dup-sticky.nav-cta--full {
-    flex-direction: column;
-}
+/* Nav drawer CTA logic migrated */
 
 /* Mobile + tablet: hamburger, hide desktop nav & CTA row */
 @media (max-width: 1023px) {
@@ -529,9 +362,7 @@ body.nav-drawer-open .nav-menu-toggle .nav-menu-bar:nth-child(3) {
         display: none !important;
     }
 
-    .nav-cta--desktop {
-        display: none !important;
-    }
+/* Migrated to cms_cta.css */
 }
 
 @media (min-width: 1024px) {
@@ -549,117 +380,7 @@ body.nav-drawer-open .nav-menu-toggle .nav-menu-bar:nth-child(3) {
     }
 }
 
-/* Sticky bottom bar: Call + WhatsApp together, full width */
-.nav-sticky-cta {
-    display: none;
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 95;
-    padding: 0;
-    padding-bottom: env(safe-area-inset-bottom, 0);
-    background: rgba(255, 255, 255, 0.94);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-top: 1px solid var(--glass-border);
-    box-shadow: 0 -8px 28px rgba(15, 23, 42, 0.08);
-}
 
-@media (max-width: 1023px) {
-    .nav-sticky-cta {
-        display: flex;
-        width: 100%;
-    }
-}
-
-.nav-sticky-cta--split {
-    flex-direction: row;
-}
-
-.nav-sticky-cta--full {
-    flex-direction: column;
-}
-
-@media (min-width: 1024px) {
-    .nav-sticky-cta--also-desktop {
-        display: flex !important;
-        width: 100%;
-    }
-}
-
-.nav-sticky-cta__btn {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    min-height: 52px;
-    padding: 12px 10px;
-    font-weight: 700;
-    font-size: 14px;
-    text-decoration: none;
-    color: #fff;
-    transition: background 0.2s ease, transform 0.15s ease;
-}
-
-.nav-sticky-cta__btn:active {
-    transform: scale(0.98);
-}
-
-.nav-sticky-cta__btn .cta-svg {
-    flex-shrink: 0;
-}
-
-.nav-sticky-cta__btn--call {
-    background: linear-gradient(180deg, var(--cms-cta-call-a, #1d4ed8), var(--cms-cta-call-b, #1e40af));
-}
-
-.nav-sticky-cta__btn--wa {
-    background: linear-gradient(180deg, #22c55e, #15803d);
-}
-
-/* Sticky bar: split / full dividers */
-.nav-sticky-cta--split .nav-sticky-cta__btn--call {
-    border-right: 1px solid rgba(255, 255, 255, 0.22);
-    border-bottom: none;
-}
-
-.nav-sticky-cta--split .nav-sticky-cta__btn {
-    width: auto;
-}
-
-.nav-sticky-cta--full .nav-sticky-cta__btn--call {
-    border-right: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.22);
-}
-
-.nav-sticky-cta--full .nav-sticky-cta__btn {
-    width: 100%;
-    min-height: 50px;
-}
-
-body.has-sticky-cta {
-    padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
-}
-
-body.has-sticky-cta.has-sticky-layout-full {
-    padding-bottom: calc(104px + env(safe-area-inset-bottom, 0px));
-}
-
-@media (min-width: 1024px) {
-    body.has-sticky-cta:not(.has-sticky-desktop) {
-        padding-bottom: 0;
-    }
-
-    body.has-sticky-cta.has-sticky-desktop {
-        padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
-    }
-
-    body.has-sticky-cta.has-sticky-desktop.has-sticky-layout-full {
-        padding-bottom: calc(104px + env(safe-area-inset-bottom, 0px));
-    }
-}
 
 .section {
     min-height: 100vh;
@@ -690,7 +411,9 @@ h1 {
 }
 
 @keyframes gradientMove {
-    to { background-position: 200% center; }
+    to {
+        background-position: 200% center;
+    }
 }
 
 p.subtitle {
@@ -753,7 +476,8 @@ p.subtitle {
     transform: translate(-50%, -50%) scale(1);
 }
 
-.panel-input, .panel-select {
+.panel-input,
+.panel-select {
     width: 100%;
     padding: 12px 16px;
     background: #fff;
@@ -776,107 +500,12 @@ p.subtitle {
 }
 
 /* [cms_contact_form] shortcode */
-.cms-contact-form {
-    position: relative;
-    max-width: 32rem;
-    margin: 1.5rem 0;
-    padding: 1.25rem 1.35rem;
-    border-radius: 14px;
-    border: 1px solid rgba(15, 23, 42, 0.1);
-    background: #fff;
-    box-shadow: 0 8px 30px rgba(15, 23, 42, 0.06);
-}
-.cms-contact-form__title {
-    margin: 0 0 1rem;
-    font-size: 1.15rem;
-    font-weight: 600;
-    color: var(--primary, #4facfe);
-}
-.cms-contact-form__field {
-    margin-bottom: 1rem;
-}
-.cms-contact-form__label {
-    display: block;
-    font-size: 0.85rem;
-    color: var(--text-gray);
-    margin-bottom: 0.35rem;
-}
-.cms-contact-form__req {
-    color: #f87171;
-}
-.cms-contact-form__input,
-.cms-contact-form__textarea,
-.cms-contact-form__select {
-    width: 100%;
-    box-sizing: border-box;
-    padding: 0.65rem 0.85rem;
-    border-radius: 10px;
-    border: 1px solid rgba(15, 23, 42, 0.12);
-    background: #f8fafc;
-    color: var(--body-text);
-    font: inherit;
-}
-.cms-contact-form__select {
-    cursor: pointer;
-    appearance: auto;
-}
-.cms-contact-form__textarea {
-    resize: vertical;
-    min-height: 5rem;
-}
-.cms-contact-form__submit {
-    margin-top: 0.25rem;
-    padding: 0.65rem 1.35rem;
-    border: none;
-    border-radius: 10px;
-    font-weight: 700;
-    cursor: pointer;
-    background: linear-gradient(45deg, var(--secondary, #00f2fe), var(--primary, #4facfe));
-    color: #050505;
-}
-.cms-contact-form__hp {
-    position: absolute;
-    left: -9999px;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-}
-.cms-contact-form--disabled .cms-contact-form__notice {
-    margin: 0;
-    color: var(--text-gray);
-    font-size: 0.9rem;
-}
-.cms-contact-form__notice--warn {
-    margin: 0 0 1rem;
-    padding: 0.65rem 0.85rem;
-    border-radius: 10px;
-    font-size: 0.85rem;
-    line-height: 1.45;
-    color: #fde68a;
-    background: rgba(245, 158, 11, 0.12);
-    border: 1px solid rgba(245, 158, 11, 0.35);
-}
-.cms-contact-form--needs-config .cms-contact-form__submit:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-}
-.cms-contact-flash {
-    max-width: 32rem;
-    margin: 0 0 1rem;
-    padding: 0.75rem 1rem;
-    border-radius: 10px;
-    font-size: 0.9rem;
-}
-.cms-contact-flash--ok {
-    background: rgba(34, 197, 94, 0.12);
-    border: 1px solid rgba(34, 197, 94, 0.35);
-    color: #166534;
-}
-.cms-contact-flash--err {
-    background: rgba(248, 113, 113, 0.1);
-    border: 1px solid rgba(248, 113, 113, 0.35);
-    color: #991b1b;
-}
+/* CMS components moved to dedicated files: cms_contact_form.css, cms_cta.css */
+
+/* 
+   CMS Components: Contact Form and CTA buttons have been moved 
+   to their own modular files: cms_contact_form.css and cms_cta.css.
+*/
 
 @media (max-width: 1023px) {
     .section {
@@ -915,8 +544,7 @@ body.cms-tpl-canvas main.dynamic-container.section .ref-wrap {
 body.cms-tpl-canvas .glass-nav,
 body.cms-tpl-canvas .nav-menu-toggle,
 body.cms-tpl-canvas .nav-drawer-overlay,
-body.cms-tpl-canvas .nav-drawer,
-body.cms-tpl-canvas .nav-sticky-cta {
+body.cms-tpl-canvas .nav-drawer {
     display: none !important;
 }
 

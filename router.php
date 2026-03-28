@@ -16,6 +16,11 @@ $uri = is_string($uri) ? str_replace('\\', '/', rawurldecode($uri)) : '/';
 
 $docroot = __DIR__;
 
+// 1. If it's a real file that exists in docroot, serve it normally
+if ($uri !== '/' && $uri !== '' && is_file($docroot . $uri)) {
+    return false;
+}
+
 if (preg_match('#^/(pages_data|users_data)(/|$)#i', $uri)) {
     http_response_code(403);
     header('Content-Type: text/plain; charset=UTF-8');
@@ -33,9 +38,6 @@ if ($uri === '/sitemap.xml') {
 }
 
 $path = $docroot . $uri;
-if ($uri !== '/' && $uri !== '' && is_file($path)) {
-    return false;
-}
 if ($uri !== '/' && $uri !== '' && is_dir($path)) {
     return false;
 }

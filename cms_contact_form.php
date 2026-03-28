@@ -421,25 +421,13 @@ function cms_contact_form_ensure_token(): string {
 }
 
 /**
- * Replace [cms_contact_form] and [cms_contact_form title="…"] in page HTML.
- *
- * @param string $returnUrl Where to redirect after submit (same site only).
  */
 function cms_apply_page_shortcodes(string $html, string $returnUrl): string {
     return preg_replace_callback('/\[cms_contact_form([^\]]*)\]/i', static function (array $m) use ($returnUrl) {
         $attrs = $m[1] ?? '';
         $title = null;
-        if (preg_match('/\btitle\s*=\s*"([^"]*)"/u', $attrs, $tm)) {
-            $title = $tm[1];
-        } elseif (preg_match("/\btitle\s*=\s*'([^']*)'/u", $attrs, $tm)) {
-            $title = $tm[1];
-        }
-        if ($title !== null) {
-            $title = trim($title);
-            if ($title === '') {
-                $title = null;
-            }
-        }
+        if (preg_match('/\btitle\s*=\s*"([^"]*)"/u', $attrs, $tm)) { $title = $tm[1]; }
+        elseif (preg_match("/\btitle\s*=\s*'([^']*)'/u", $attrs, $tm)) { $title = $tm[1]; }
         return cms_render_contact_form_html($returnUrl, $title);
     }, $html);
 }
@@ -478,8 +466,25 @@ function cms_contact_flash_message_html(): string {
         return '';
     }
     [$kind, $text] = $map[$code];
-    $cls = $kind === 'ok' ? 'cms-contact-flash cms-contact-flash--ok' : 'cms-contact-flash cms-contact-flash--err';
-    return '<div class="' . $cls . '" role="status">' . cms_escape($text) . '</div>';
+    $cls = 'cms-contact-flash cms-contact-flash--' . ($kind === 'ok' ? 'ok' : 'err');
+    
+    ob_start(); ?>
+    <div id="cms-contact-flash" class="<?php echo $cls; ?>" role="status">
+        <?php echo ($kind === 'ok' ? '✓ ' : '⚠ '); ?> <?php echo cms_escape($text); ?>
+    </div>
+    <script>
+    setTimeout(function() {
+        var el = document.getElementById('cms-contact-flash');
+        if (el) {
+            el.style.transition = 'opacity 1s ease, transform 1s ease';
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(10px)';
+            setTimeout(function() { el.remove(); }, 1000);
+        }
+    }, 5000);
+    </script>
+    <?php
+    return ob_get_clean();
 }
 
 function cms_render_contact_form_html(string $returnUrl, ?string $heading = null): string {
@@ -491,19 +496,19 @@ function cms_render_contact_form_html(string $returnUrl, ?string $heading = null
     }
     $fields = cms_contact_form_fields();
     $action = cms_escape(cms_url('contact_submit.php'));
-    $ret = cms_escape(cms_contact_form_safe_return_url($returnUrl, cms_home_url()));
+    $ret = cms_escape(cms_contact_form_safe_return_url($returnUrl, cms_home_url()) . '#cms-contact-form');
     $tok = cms_escape($token);
 
     ob_start();
     ?>
-<div class="cms-contact-form<?php echo $noRecipient ? ' cms-contact-form--needs-config' : ''; ?>">
+<div id="cms-contact-form" class="cms-contact-form<?php echo $noRecipient ? ' cms-contact-form--needs-config' : ''; ?>">
     <?php if ($heading !== null && $heading !== ''): ?>
     <h3 class="cms-contact-form__title"><?php echo cms_escape($heading); ?></h3>
     <?php endif; ?>
     <?php if ($noRecipient): ?>
     <p class="cms-contact-form__notice cms-contact-form__notice--warn">Set <strong>Send submissions to</strong> under <strong>Admin → Contact form</strong> to enable sending. You can still see the fields below.</p>
     <?php endif; ?>
-    <form class="cms-contact-form__form" method="post" action="<?php echo $action; ?>" novalidate>
+    <form class="cms-contact-form__form" method="post" action="<?php echo $action; ?>">
         <input type="hidden" name="cms_cf_token" value="<?php echo $tok; ?>">
         <input type="hidden" name="return_url" value="<?php echo $ret; ?>">
         <div class="cms-contact-form__hp" aria-hidden="true">
@@ -516,39 +521,88 @@ function cms_render_contact_form_html(string $returnUrl, ?string $heading = null
             $lb = cms_escape($f['label']);
             $req = !empty($f['required']);
             $ftype = $f['type'] ?? 'text';
+            $placeholder = $lb . ($req ? ' *' : '');
             ?>
-        <div class="cms-contact-form__field">
-            <label class="cms-contact-form__label" for="<?php echo cms_escape($id); ?>"><?php echo $lb; ?><?php echo $req ? ' <span class="cms-contact-form__req">*</span>' : ''; ?></label>
+        <div class="cms-contact-form__field cms-contact-form__field--<?php echo $nm; ?>">
             <?php if ($ftype === 'textarea'): ?>
-            <textarea class="cms-contact-form__input cms-contact-form__textarea" id="<?php echo cms_escape($id); ?>" name="<?php echo $nm; ?>" rows="4" <?php echo $req ? 'required' : ''; ?>></textarea>
+            <textarea class="cms-contact-form__input cms-contact-form__textarea" id="<?php echo cms_escape($id); ?>" name="<?php echo $nm; ?>" placeholder="<?php echo $placeholder; ?>" rows="4" <?php echo $req ? 'required' : ''; ?>></textarea>
             <?php elseif ($ftype === 'select' && !empty($f['options']) && is_array($f['options'])): ?>
             <select class="cms-contact-form__input cms-contact-form__select" id="<?php echo cms_escape($id); ?>" name="<?php echo $nm; ?>" <?php echo $req ? 'required' : ''; ?>>
-                <?php if (!$req): ?><option value=""><?php echo cms_escape('— Select —'); ?></option><?php endif; ?>
+                <option value="" disabled selected><?php echo $placeholder; ?></option>
                 <?php foreach ($f['options'] as $opt):
                     $ov = cms_escape((string) $opt);
                     ?>
                 <option value="<?php echo $ov; ?>"><?php echo $ov; ?></option>
                 <?php endforeach; ?>
             </select>
-            <?php elseif ($ftype === 'number'): ?>
-            <input class="cms-contact-form__input" type="number" id="<?php echo cms_escape($id); ?>" name="<?php echo $nm; ?>" <?php echo $req ? 'required' : ''; ?><?php
-            if (isset($f['min']) && is_numeric($f['min'])) {
-                echo ' min="' . cms_escape((string) $f['min']) . '"';
-            }
-            if (isset($f['max']) && is_numeric($f['max'])) {
-                echo ' max="' . cms_escape((string) $f['max']) . '"';
-            }
-            if (isset($f['step']) && is_numeric($f['step'])) {
-                echo ' step="' . cms_escape((string) $f['step']) . '"';
-            }
-            ?>>
             <?php else: ?>
-            <input class="cms-contact-form__input" type="<?php echo $ftype === 'email' ? 'email' : ($ftype === 'tel' ? 'tel' : 'text'); ?>" id="<?php echo cms_escape($id); ?>" name="<?php echo $nm; ?>" <?php echo $req ? 'required' : ''; ?>>
+            <input class="cms-contact-form__input" type="<?php echo ($ftype === 'email' ? 'email' : ($ftype === 'tel' ? 'tel' : 'text')); ?>" id="<?php echo cms_escape($id); ?>" name="<?php echo $nm; ?>" placeholder="<?php echo $placeholder; ?>" <?php echo $req ? 'required' : ''; ?>>
             <?php endif; ?>
         </div>
         <?php endforeach; ?>
         <button type="submit" class="cms-contact-form__submit"<?php echo $noRecipient ? ' disabled aria-disabled="true" title="Add a recipient email in Admin → Contact form"' : ''; ?>>Send</button>
+
+        <div id="cms-cf-status-wrap">
+            <?php echo cms_contact_flash_message_html(); ?>
+        </div>
     </form>
+    <script>
+    (function(){
+        var cf = document.querySelector('#cms-contact-form form');
+        if (!cf) return;
+        cf.addEventListener('submit', function(e){
+            e.preventDefault();
+            if (e.target.hasAttribute('data-submitting')) return;
+            
+            var wrap = document.getElementById('cms-cf-status-wrap');
+            
+            // Client-side validation check
+            if (!cf.checkValidity()) {
+                cf.reportValidity(); // Shows native popups
+                wrap.innerHTML = '<div class="cms-contact-flash cms-contact-flash--err">⚠ Please fill in all required fields.</div>';
+                return;
+            }
+            
+            var btn = cf.querySelector('button[type="submit"]');
+            var oldBtnText = btn.innerHTML;
+            wrap.innerHTML = ''; // Clear old messages
+            
+            btn.innerHTML = 'Sending...';
+            btn.setAttribute('data-submitting', '1');
+            btn.style.opacity = '0.7';
+            
+            var fd = new FormData(cf);
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', cf.action, true);
+            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+            xhr.onload = function() {
+                btn.innerHTML = oldBtnText;
+                btn.removeAttribute('data-submitting');
+                btn.style.opacity = '1';
+                if (xhr.status === 200) {
+                    try {
+                        var resp = JSON.parse(xhr.responseText);
+                        if (resp.ok) { cf.reset(); }
+                        // Clean URL for fetch
+                        var cleanUrl = window.location.href.split('#')[0];
+                        var finalUrl = cleanUrl + (cleanUrl.indexOf('?') > -1 ? '&' : '?') + 'contact_msg=' + resp.msg;
+                        fetch(finalUrl)
+                        .then(r => r.text())
+                        .then(html => {
+                            var parser = new DOMParser();
+                            var doc = parser.parseFromString(html, 'text/html');
+                            var newStatus = doc.getElementById('cms-contact-flash');
+                            if (newStatus) { wrap.innerHTML = newStatus.outerHTML; }
+                            else { window.location.href = finalUrl + '#cms-contact-form'; } // Fallback
+                        }).catch(function(){ window.location.href = finalUrl + '#cms-contact-form'; });
+                    } catch(e) { window.location.reload(); }
+                } else { wrap.innerHTML = '<div class="cms-contact-flash cms-contact-flash--err">Server error. Please try again.</div>'; }
+            };
+            xhr.onerror = function() { window.location.reload(); };
+            xhr.send(fd);
+        });
+    })();
+    </script>
 </div>
     <?php
     return (string) ob_get_clean();
@@ -756,7 +810,14 @@ function cms_contact_handle_post(): void {
         exit;
     }
     $ret = cms_contact_form_safe_return_url((string) ($_POST['return_url'] ?? ''), cms_home_url());
-    $redirect = function (string $msg) use ($ret) {
+    $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest');
+
+    $redirect = function (string $msg) use ($ret, $isAjax) {
+        if ($isAjax) {
+            header('Content-Type: application/json');
+            echo json_encode(['ok' => ($msg === 'sent'), 'msg' => $msg]);
+            exit;
+        }
         $sep = strpos($ret, '?') !== false ? '&' : '?';
         header('Location: ' . $ret . $sep . 'contact_msg=' . rawurlencode($msg));
         exit;

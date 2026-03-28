@@ -1,0 +1,139 @@
+/* CMS Call-to-Action (CTA) & Sticky Bar Styles */
+:root {
+    --cms-cta-call-a: #1d4ed8;
+    --cms-cta-call-b: #1e40af;
+    --cms-cta-call-pulse: rgba(79, 172, 254, 0.5);
+    --cms-cta-wa-a: #22c55e;
+    --cms-cta-wa-b: #15803d;
+}
+
+/* Base CTA Button (used in page content) */
+.cta-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    border-radius: 12px;
+    text-decoration: none;
+    color: #fff;
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 1.2;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.cta-btn__text { display: flex; flex-direction: column; align-items: flex-start; text-align: left; }
+.cta-btn__label { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.cta-btn__sub { font-size: 11px; font-weight: 500; opacity: 0.85; }
+
+.cta-btn--call {
+    background: linear-gradient(135deg, var(--cms-cta-call-a), var(--cms-cta-call-b));
+    border-color: rgba(255, 255, 255, 0.15);
+}
+.cta-btn--whatsapp {
+    background: linear-gradient(135deg, var(--cms-cta-wa-a), var(--cms-cta-wa-b));
+}
+.cta-btn--block { width: 100%; justify-content: center; padding: 14px 18px; min-height: 52px; }
+
+.cta-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(79, 172, 254, 0.35);
+}
+
+/* Sticky Bottom Bar */
+.nav-sticky-cta {
+    display: none;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000;
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid rgba(0,0,0,0.08);
+    box-shadow: 0 -8px 28px rgba(15, 23, 42, 0.08);
+    padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+@media (max-width: 1023px) {
+    .nav-sticky-cta { display: flex; width: 100%; }
+}
+
+.nav-sticky-cta--split { flex-direction: row; }
+.nav-sticky-cta--full { flex-direction: column; }
+
+.nav-sticky-cta__btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 52px;
+    padding: 12px 10px;
+    font-weight: 700;
+    font-size: 14px;
+    text-decoration: none;
+    color: #fff;
+    transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.nav-sticky-cta__btn--call { background: linear-gradient(180deg, var(--cms-cta-call-a), var(--cms-cta-call-b)); }
+.nav-sticky-cta__btn--wa { background: linear-gradient(180deg, var(--cms-cta-wa-a), var(--cms-cta-wa-b)); }
+
+.nav-sticky-cta--split .nav-sticky-cta__btn--call { border-right: 1px solid rgba(255, 255, 255, 0.2); }
+
+/* Pulse Animation Logic */
+.cta-pulse {
+    animation: ctaCallPulseRing 2s ease-in-out infinite, ctaCallPulseShine 2.6s ease-in-out infinite;
+}
+
+@keyframes ctaCallPulseRing {
+    0%, 100% { box-shadow: 0 0 0 0 var(--cms-cta-call-pulse); }
+    50% { box-shadow: 0 0 0 16px rgba(79, 172, 254, 0); }
+}
+
+@keyframes ctaCallPulseShine {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.1) saturate(1.06); }
+}
+
+/* Header Integration */
+.nav-cta--desktop.nav-cta--dup-sticky {
+    display: none;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+/* Mobile: body padding for sticky bar */
+body.has-sticky-cta {
+    padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+}
+body.has-sticky-cta.has-sticky-layout-full {
+    padding-bottom: calc(104px + env(safe-area-inset-bottom, 0px));
+}
+
+/* Ensure padding for desktop stickiness */
+body.has-sticky-desktop {
+    padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+@media (max-width: 1023px) {
+    .nav-cta--desktop { display: none !important; }
+}
+
+@media (min-width: 1024px) {
+    .nav-sticky-cta { display: none; }
+    .nav-sticky-cta.nav-sticky-cta--also-desktop { 
+        display: flex !important; 
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        border-radius: 0;
+        border: none;
+        border-top: 1px solid rgba(0,0,0,0.08);
+        box-shadow: 0 -8px 28px rgba(15, 23, 42, 0.08);
+    }
+}

@@ -733,7 +733,35 @@ function getHeader($title) {
         <?php endif; ?>
     </aside>
 
-    <?php if ($ctaCount > 0): ?>
+    <?php
+}
+
+function cms_render_sticky_cta() {
+    [$callC1, $callC2] = cms_cta_call_gradient_colors();
+    $pulseRing  = cms_hex_rgba_css($callC1, 0.5);
+    $pulseFade  = cms_hex_rgba_css($callC1, 0);
+    $pulseGlow  = cms_hex_rgba_css($callC1, 0.32);
+    $pulseGlow2 = cms_hex_rgba_css($callC1, 0.14);
+    $brand      = cms_brand();
+    $phone      = cms_phone();
+    $wa         = cms_whatsapp();
+    $telDigits  = cms_phone_tel_digits();
+    $waDigits   = cms_whatsapp_digits();
+    $telHref    = 'tel:' . $telDigits;
+    $waHref     = 'https://wa.me/' . $waDigits;
+    $waPrefill  = rawurlencode('Hi, I found you on ' . $brand . ' and would like to get in touch.');
+    $waHrefMsg  = $waHref . '?text=' . $waPrefill;
+
+    $showCall  = cms_cta_call_enabled();
+    $showWa    = cms_cta_whatsapp_enabled();
+    $ctaCount  = (int) $showCall + (int) $showWa;
+    $ctaLayout = cms_sticky_cta_layout();
+    $stickyDesktop = cms_cta_sticky_desktop();
+    $callLabel     = cms_cta_call_label();
+
+    if ($ctaCount <= 0) return;
+    ?>
+    <style id="cms-cta-call-theme-sticky">:root{--cms-cta-call-a:<?php echo cms_escape($callC1); ?>;--cms-cta-call-b:<?php echo cms_escape($callC2); ?>;--cms-cta-call-pulse:<?php echo cms_escape($pulseRing); ?>;--cms-cta-call-pulse-fade:<?php echo cms_escape($pulseFade); ?>;--cms-cta-call-pulse-glow:<?php echo cms_escape($pulseGlow); ?>;--cms-cta-call-pulse-glow2:<?php echo cms_escape($pulseGlow2); ?>;}</style>
     <div class="nav-sticky-cta nav-sticky-cta--<?php echo cms_escape($ctaLayout); ?><?php echo $stickyDesktop ? ' nav-sticky-cta--also-desktop' : ''; ?>"
          role="region" aria-label="Quick contact" data-sticky-layout="<?php echo cms_escape($ctaLayout); ?>"
          <?php echo $stickyDesktop ? 'data-sticky-desktop="1"' : ''; ?>>
@@ -753,7 +781,6 @@ function getHeader($title) {
         </a>
         <?php endif; ?>
     </div>
-    <?php endif; ?>
     <?php
 }
 

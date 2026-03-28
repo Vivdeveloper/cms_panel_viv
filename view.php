@@ -53,8 +53,10 @@ $bodyTpl   = cms_page_template_body_classes($pageTpl);
         'lang'        => cms_default_lang(),
     ]);
     ?>
+    <link rel="stylesheet" href="cms_contact_form.css">
+    <link rel="stylesheet" href="cms_cta.css">
     <?php if ($pageTpl !== 'canvas'): ?>
-    <link rel="stylesheet" href="<?php echo cms_escape(cms_url('public_style.css')); ?>">
+    <link rel="stylesheet" href="public_style.css">
     <?php endif; ?>
     <style>
         .cms-draft-banner {
@@ -84,15 +86,13 @@ $bodyTpl   = cms_page_template_body_classes($pageTpl);
     <?php endif; ?>
 
     <main class="dynamic-container section">
-        <?php echo cms_contact_flash_message_html(); ?>
         <?php echo cms_apply_page_shortcodes($page['html'], cms_page_url($slug)); ?>
     </main>
 
     <?php if ($pageTpl !== 'canvas'): ?>
     <?php cms_echo_site_html_snippet('inject_footer_html'); ?>
     <?php endif; ?>
-    <?php if ($pageTpl !== 'canvas'): ?>
     <script src="main.js"></script>
-    <?php endif; ?>
+    <?php cms_render_sticky_cta(); ?>
 </body>
 </html>

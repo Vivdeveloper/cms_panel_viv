@@ -45,33 +45,32 @@ $homeBodyTpl = cms_page_template_body_classes($homeTpl);
         'lang'        => cms_default_lang(),
     ]);
     ?>
-    <link rel="stylesheet" href="<?php echo cms_escape(cms_url('public_style.css')); ?>">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link rel="stylesheet" href="public_style.css">
+    <link rel="stylesheet" href="cms_contact_form.css">
+    <link rel="stylesheet" href="cms_cta.css">
     <style>
-        .dynamic-container { margin-top: <?php echo ($homePage && $homeTpl === 'canvas') ? '0' : '150px'; ?>; padding: <?php echo ($homePage && $homeTpl === 'canvas') ? '24px 20px 80px' : '20px'; ?>; }
-        .cms-draft-banner {
-            position: fixed; top: 0; left: 0; right: 0; z-index: 99999;
-            background: #b45309; color: #fff; text-align: center; padding: 8px 8px;
-            font-size: 13px; font-weight: 600;
-        }
+        <?php if ($homeTpl === 'canvas'): ?>
+        html, body { margin: 0; padding: 0; width: 100%; min-height: 100vh; background: transparent; }
+        .dynamic-container { margin: 0 !important; padding: 0 !important; width: 100%; max-width: none; }
+        <?php else: ?>
+        .dynamic-container { margin-top: 0; padding: 0; }
+        <?php endif; ?>
+        <?php echo ($homePage ? $homePage['css'] : ''); ?>
     </style>
 </head>
 <body class="<?php echo cms_escape($homeBodyTpl); ?>">
     <?php cms_echo_site_html_snippet('inject_body_open_html'); ?>
     <?php if ($homePage && ($homePage['status'] ?? 'draft') !== 'published' && cms_is_admin_preview()): ?>
-    <div class="cms-draft-banner" role="status">Home page is a draft — public visitors still see the placeholder below until you publish.</div>
+    <div class="cms-draft-banner" role="status">Home page is a draft preview.</div>
     <?php endif; ?>
-    <div id="canvas-container"></div>
+
+    <?php if ($homeTpl !== 'canvas'): ?>
     <?php getPanel(); ?>
-    <?php if (!$homePage || $homeTpl !== 'canvas'): ?>
     <?php getHeader('Home'); ?>
     <?php endif; ?>
 
-    <?php
-    if ($homePage): ?>
-        <style><?php echo $homePage['css']; ?></style>
+    <?php if ($homePage): ?>
         <main class="dynamic-container section">
-            <?php echo cms_contact_flash_message_html(); ?>
             <?php echo cms_apply_page_shortcodes($homePage['html'], cms_home_url()); ?>
         </main>
     <?php else: ?>
@@ -86,9 +85,10 @@ $homeBodyTpl = cms_page_template_body_classes($homeTpl);
         </main>
     <?php endif; ?>
 
-    <?php if (!$homePage || $homeTpl !== 'canvas'): ?>
+    <?php if ($homeTpl !== 'canvas'): ?>
     <?php cms_echo_site_html_snippet('inject_footer_html'); ?>
     <?php endif; ?>
     <script src="main.js"></script>
+    <?php cms_render_sticky_cta(); ?>
 </body>
 </html>
