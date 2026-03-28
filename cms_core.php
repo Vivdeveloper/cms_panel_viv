@@ -46,16 +46,17 @@ function cms_login_attempts_file(): string {
     return $dir . md5($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1') . '.json';
 }
 
-function cms_login_is_locked_out(): bool {
+function cms_login_is_locked_out(): int {
     $f = cms_login_attempts_file();
-    if (!is_file($f)) return false;
+    if (!is_file($f)) return 0;
     $d = json_decode((string) file_get_contents($f), true);
-    if (!is_array($d)) return false;
+    if (!is_array($d)) return 0;
     $attempts = (int) ($d['attempts'] ?? 0);
     $last     = (int) ($d['last'] ?? 0);
-    if ($attempts >= 5 && (time() - $last) < 900) return true;
-    if ((time() - $last) >= 900) { @unlink($f); return false; }
-    return false;
+    $diff     = time() - $last;
+    if ($attempts >= 5 && $diff < 900) return 900 - $diff;
+    if ($diff >= 900) { @unlink($f); return 0; }
+    return 0;
 }
 
 function cms_login_attempts_record(): void {

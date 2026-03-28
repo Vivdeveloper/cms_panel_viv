@@ -22,8 +22,9 @@ if (!isset($_SESSION['is_admin']) || $_SESSION['is_admin'] !== true) {
     if (isset($_POST['auth_key'])) {
         $ident = trim((string) ($_POST['cms_login'] ?? $_POST['cms_username'] ?? ''));
         $cmsLoginValue = $ident;
-        if (cms_login_is_locked_out()) {
-            $cmsLoginError = 'Too many failed attempts. Try again in 15 minutes.';
+        if (($locked = cms_login_is_locked_out()) > 0) {
+            $mins = ceil($locked / 60);
+            $cmsLoginError = "Too many failed attempts. Try again in $mins " . ($mins === 1 ? 'minute' : 'minutes') . '.';
         } elseif ($ident === '') {
             $cmsLoginError = 'Enter your email or username.';
         } elseif (($row = cms_find_user_for_login($ident)) === null) {
