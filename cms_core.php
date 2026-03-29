@@ -461,7 +461,7 @@ if (isset($_POST['post_empty_trash'])) {
 if (isset($_POST['save_site_settings'])) {
     checkAdmin();
     $returnTab = isset($_POST['admin_return_tab']) ? (string) $_POST['admin_return_tab'] : 'settings';
-    $validReturnTabs = ['settings', 'html_tags'];
+    $validReturnTabs = ['settings', 'html_tags', 'maintenance'];
     if (!in_array($returnTab, $validReturnTabs, true)) {
         $returnTab = 'settings';
     }
@@ -649,7 +649,7 @@ if (isset($_POST['change_admin_password'])) {
     exit;
 }
 
-    header('Location: viv-admin.php?tab=config&patched=1');
+
 
 /**
  * If pages_data/{slug}.json already exists, append -2, -3, … (WordPress-style) until unused.
@@ -951,7 +951,7 @@ function getCMSPage($slug) {
 // --- USER MANAGEMENT ---
 /** Keys for admin sidebar / tab access (keep in sync with admin_menu.php labels). */
 function cms_admin_menu_keys() {
-    return ['pages', 'trash', 'media', 'backup', 'settings', 'html_tags', 'contact', 'contact_form', 'crm', 'users', 'config'];
+    return ['pages', 'trash', 'media', 'backup', 'settings', 'html_tags', 'contact', 'contact_form', 'crm', 'users', 'config', 'maintenance'];
 }
 
 function cms_sanitize_menu_allow($raw) {

@@ -15,6 +15,7 @@ function cms_admin_nav_items() {
         'crm'           => ['href' => 'viv-admin.php?tab=crm', 'icon' => 'fa-clipboard-list', 'label' => 'CRM'],
         'users'         => ['href' => 'viv-admin.php?tab=users', 'icon' => 'fa-users-cog', 'label' => 'User Roles'],
         'config'    => ['href' => 'viv-admin.php?tab=config', 'icon' => 'fa-server', 'label' => 'Server Config'],
+        'maintenance' => ['href' => 'viv-admin.php?tab=maintenance', 'icon' => 'fa-toggle-on', 'label' => 'Maintenance'],
     ];
     $items = [];
     foreach (cms_admin_menu_keys() as $key) {

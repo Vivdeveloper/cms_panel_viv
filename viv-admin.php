@@ -58,7 +58,7 @@ if (!isset($_SESSION['is_admin']) || $_SESSION['is_admin'] !== true) {
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
-        <link rel="stylesheet" href="<?php echo cms_url('admin_style.css'); ?>">
+        <link rel="stylesheet" href="<?php echo cms_url('admin_style.css'); ?>?v=<?php echo time(); ?>">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
         <link rel="icon" type="image/svg+xml" href="<?php echo cms_generate_text_favicon_svg(cms_brand()); ?>">
     </head>
@@ -150,7 +150,7 @@ if ($editData) {
 
 $csrf = cms_csrf_token();
 
-$validMainTabs = ['pages', 'trash', 'users', 'settings', 'html_tags', 'contact', 'contact_form', 'crm', 'config'];
+$validMainTabs = ['pages', 'trash', 'media', 'backup', 'settings', 'html_tags', 'contact', 'contact_form', 'crm', 'users', 'config', 'maintenance'];
 $mainTab       = isset($_GET['tab']) && in_array((string) $_GET['tab'], $validMainTabs, true) ? (string) $_GET['tab'] : 'pages';
 $menuUserRecord = cms_current_user_record();
 $allowedMenuKeys = cms_user_allowed_menu_keys($menuUserRecord);
@@ -171,7 +171,7 @@ if ($userQuery !== '' && $userQuery !== 'new') {
 $userCompose = ($editUserData === null);
 $userNavItemsMenu = cms_admin_nav_items();
 /** Mobile tab defaults (narrow screens): editor when a page/user is open in the URL. */
-$mobilePeView = ($mainTab === 'pages' && isset($_GET['edit']) && $editData) ? 'editor' : 'list';
+$mobilePeView = ($mainTab === 'pages' && isset($_GET['edit']) && ($_GET['edit'] === 'new' || $editData)) ? 'editor' : 'list';
 $mobileUeView = ($mainTab === 'users' && $userQuery !== '' && ($userQuery === 'new' || $editUserData !== null)) ? 'editor' : 'list';
 $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($mainTab === 'users') ? 'mobile-show-users-tabs' : '');
 ?>
@@ -185,7 +185,7 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap">
-    <link rel="stylesheet" href="<?php echo cms_url('admin_style.css'); ?>">
+    <link rel="stylesheet" href="<?php echo cms_url('admin_style.css'); ?>?v=<?php echo time(); ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="icon" type="image/svg+xml" href="<?php echo cms_generate_text_favicon_svg(cms_brand()); ?>">
 </head>
@@ -298,7 +298,7 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                     </div>
                 </div>
 
-            <div class="wp-split wp-split--mobile-tabbed<?php echo $splitMobileStripClass !== '' ? ' ' . htmlspecialchars($splitMobileStripClass) : ''; ?>" id="wp-split-main" data-pe-view="<?php echo htmlspecialchars($mobilePeView); ?>" data-ue-view="<?php echo htmlspecialchars($mobileUeView); ?>">
+            <div class="wp-split wp-split--mobile-tabbed <?php echo $splitMobileStripClass !== '' ? ' ' . htmlspecialchars($splitMobileStripClass) : ''; ?>" id="wp-split-main" data-pe-view="<?php echo htmlspecialchars($mobilePeView); ?>" data-ue-view="<?php echo htmlspecialchars($mobileUeView); ?>">
                 <div class="mobile-pe-tabs mobile-pe-tabs--pages" role="tablist" aria-label="Page list and editor">
                     <button type="button" class="mobile-pe-tabs__btn<?php echo $mobilePeView === 'list' ? ' is-active' : ''; ?>" data-pe-tab="list" role="tab" aria-selected="<?php echo $mobilePeView === 'list' ? 'true' : 'false'; ?>">All pages</button>
                     <button type="button" class="mobile-pe-tabs__btn<?php echo $mobilePeView === 'editor' ? ' is-active' : ''; ?>" data-pe-tab="editor" role="tab" aria-selected="<?php echo $mobilePeView === 'editor' ? 'true' : 'false'; ?>">Edit page</button>
@@ -308,11 +308,11 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                     <button type="button" class="mobile-pe-tabs__btn<?php echo $mobileUeView === 'editor' ? ' is-active' : ''; ?>" data-ue-tab="editor" role="tab" aria-selected="<?php echo $mobileUeView === 'editor' ? 'true' : 'false'; ?>">Edit user</button>
                 </div>
                 <!-- PAGES PANEL -->
-                <div id="pages-panel" class="wp-panel <?php echo $mainTab === 'pages' ? 'active' : ''; ?>">
+                <div id="pages-panel" class="wp-panel <?php echo ($mainTab === 'pages' && (!isset($_GET['edit']) || $_GET['edit'] === '')) ? 'active' : ''; ?>">
                     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
                         <span style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--mid);">All Pages</span>
                         <?php if (!$cmsPagesReadOnly): ?>
-                        <a href="viv-admin.php" class="button" style="height:26px;font-size:11px;padding:0 10px;">+ New</a>
+                        <a href="viv-admin.php?edit=new" class="button" style="height:26px;font-size:11px;padding:0 10px;">+ New</a>
                         <?php endif; ?>
                     </div>
                     <div class="pages-list">
@@ -467,20 +467,20 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                 <!-- SITE SETTINGS PANEL -->
                 <div id="settings-panel" class="wp-panel wp-panel-wide <?php echo $mainTab === 'settings' ? 'active' : ''; ?>">
                     <h1 class="wp-heading-inline">Site settings</h1>
-                    <?php $st = getSiteSettings(); ?>
+                    <?php $siteSet = getSiteSettings(); ?>
                     <div class="postbox admin-form-simple" style="margin-bottom:16px;">
                         <div class="postbox-inner">
                         <form method="post" enctype="multipart/form-data">
                             <input type="hidden" name="cms_csrf" value="<?php echo htmlspecialchars($csrf); ?>">
                             <input type="hidden" name="admin_return_tab" value="settings">
-                            <input type="hidden" name="header_logo_url" value="<?php echo htmlspecialchars($st['header_logo_url'] ?? ''); ?>">
+                            <input type="hidden" name="header_logo_url" value="<?php echo htmlspecialchars($siteSet['header_logo_url'] ?? ''); ?>">
                             <div class="form-group">
                                 <label for="st-brand">Site name</label>
-                                <input type="text" id="st-brand" name="brand" class="wp-input" value="<?php echo htmlspecialchars($st['brand'] ?? ''); ?>" placeholder="Your business name">
+                                <input type="text" id="st-brand" name="brand" class="wp-input" value="<?php echo htmlspecialchars($siteSet['brand'] ?? ''); ?>" placeholder="Your business name">
                             </div>
                             <div class="form-group">
                                 <label for="st-tagline">Tagline <span class="field-hint" style="font-weight:400;">(optional)</span></label>
-                                <input type="text" id="st-tagline" name="site_tagline" class="wp-input" value="<?php echo htmlspecialchars($st['site_tagline'] ?? ''); ?>" placeholder="Short line under your site name">
+                                <input type="text" id="st-tagline" name="site_tagline" class="wp-input" value="<?php echo htmlspecialchars($siteSet['site_tagline'] ?? ''); ?>" placeholder="Short line under your site name">
                             </div>
                             <?php $logoResolved = cms_header_logo_url_resolved(); ?>
                             <div class="form-group">
@@ -511,31 +511,27 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                                 <span class="site-logo-uploader-label">Auto Favicon</span>
                                 <div class="site-logo-uploader" style="background:rgba(15,23,42,0.02);border:1px solid rgba(15,23,42,0.06);padding:20px;border-radius:0;display:flex;align-items:center;gap:32px;">
                                     <div class="site-logo-uploader__preview" style="width:72px;height:72px;min-width:72px;min-height:72px;background:#fff;border:1px solid rgba(15,23,42,0.12);box-shadow:0 12px 32px rgba(0,0,0,0.12);overflow:hidden;border-radius:0;padding:8px;display:flex;align-items:center;justify-content:center;">
-                                        <img src="<?php echo cms_generate_text_favicon_svg($st['brand'] ?? 'C'); ?>" alt="Favicon" style="width:100%;height:100%;object-fit:contain;border-radius:0;">
+                                        <img src="<?php echo cms_generate_text_favicon_svg($siteSet['brand'] ?? 'C'); ?>" alt="Favicon" style="width:100%;height:100%;object-fit:contain;border-radius:0;">
                                     </div>
                                     <div style="flex:1; display:flex; align-items:center; border-left:1px solid rgba(15,23,42,0.1); padding-left:32px;">
-                                        <input type="color" id="st-fav-color" name="favicon_bg_color" value="<?php echo htmlspecialchars($st['favicon_bg_color'] !== '' ? $st['favicon_bg_color'] : cms_sanitize_hex_color($st['cta_call_color'] ?? '', '#4facfe')); ?>" style="width:48px;height:48px;padding:0;border:1px solid rgba(15,23,42,0.15);border-radius:0;cursor:pointer;background:none;box-shadow:0 4px 10px rgba(0,0,0,0.05);">
+                                        <input type="color" id="st-fav-color" name="favicon_bg_color" value="<?php echo htmlspecialchars($siteSet['favicon_bg_color'] !== '' ? $siteSet['favicon_bg_color'] : cms_sanitize_hex_color($siteSet['cta_call_color'] ?? '', '#4facfe')); ?>" style="width:48px;height:48px;padding:0;border:1px solid rgba(15,23,42,0.15);border-radius:0;cursor:pointer;background:none;box-shadow:0 4px 10px rgba(0,0,0,0.05);">
                                     </div>
                                 </div>
                             </div>
                             <div class="form-group">
                                 <label for="st-og">Social share image</label>
-                                <input type="url" id="st-og" name="default_og_image" class="wp-input" value="<?php echo htmlspecialchars($st['default_og_image'] ?? ''); ?>" placeholder="https://… (full URL)">
+                                <input type="url" id="st-og" name="default_og_image" class="wp-input" value="<?php echo htmlspecialchars($siteSet['default_og_image'] ?? ''); ?>" placeholder="https://… (full URL)">
                                 <p class="field-hint">Default image when links are shared (Open Graph).</p>
                             </div>
                             <div class="form-group">
                                 <label for="st-lang">Language code</label>
-                                <input type="text" id="st-lang" name="default_lang" class="wp-input" value="<?php echo htmlspecialchars($st['default_lang'] ?? 'en'); ?>" maxlength="10" placeholder="en" style="max-width:7rem;">
+                                <input type="text" id="st-lang" name="default_lang" class="wp-input" value="<?php echo htmlspecialchars($siteSet['default_lang'] ?? 'en'); ?>" maxlength="10" placeholder="en" style="max-width:7rem;">
                             </div>
                             <div class="form-group">
                                 <label for="st-robots">Extra robots.txt lines</label>
-                                <textarea id="st-robots" name="robots_extra" class="wp-input" style="height:72px;min-height:72px;"><?php echo htmlspecialchars($st['robots_extra'] ?? ''); ?></textarea>
+                                <textarea id="st-robots" name="robots_extra" class="wp-input" style="height:72px;min-height:72px;"><?php echo htmlspecialchars($siteSet['robots_extra'] ?? ''); ?></textarea>
                             </div>
-                            <input type="hidden" name="maintenance_mode" value="0">
-                            <div class="maint-row">
-                                <input type="checkbox" name="maintenance_mode" id="st-maint" value="1" <?php echo !empty($st['maintenance_mode']) ? 'checked' : ''; ?>>
-                                <label for="st-maint">Maintenance mode — visitors see a short “updating” message instead of your pages.</label>
-                            </div>
+                            <input type="hidden" name="maintenance_mode" value="<?php echo !empty($siteSet['maintenance_mode']) ? '1' : '0'; ?>">
                             <button type="submit" name="save_site_settings" class="button button-primary">Save</button>
                         </form>
                         </div>
@@ -981,12 +977,90 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                 <div id="config-panel" class="wp-panel wp-panel-wide <?php echo $mainTab === 'config' ? 'active' : ''; ?>">
                     <h1 class="wp-heading-inline">Server configuration</h1>
                     <hr class="wp-header-end">
-                        <p style="margin:0;">No maintenance tasks currently required.</p>
+                    
+                    <div class="postbox admin-form-simple">
+                        <div class="postbox-inner">
+                            <h3 style="margin:0 0 16px; font-size:14px; font-weight:600;">System Information</h3>
+                            <table class="wp-list-table widefat fixed striped" style="width:100%; border-collapse:collapse; font-size:13px;">
+                                <tbody>
+                                    <tr>
+                                        <td style="padding:10px; border-bottom:1px solid #f0f0f1; width:200px; font-weight:600;">Public Site URL</td>
+                                        <td style="padding:10px; border-bottom:1px solid #f0f0f1;"><?php echo htmlspecialchars(cms_page_url('')); ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:10px; border-bottom:1px solid #f0f0f1; font-weight:600;">Admin Path</td>
+                                        <td style="padding:10px; border-bottom:1px solid #f0f0f1;"><?php echo htmlspecialchars($_SERVER['SCRIPT_NAME'] ?? '/viv-admin.php'); ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:10px; border-bottom:1px solid #f0f0f1; font-weight:600;">Sitemap (XML)</td>
+                                        <td style="padding:10px; border-bottom:1px solid #f0f0f1;"><a href="<?php echo htmlspecialchars(cms_url('sitemap.xml')); ?>" target="_blank"><?php echo htmlspecialchars(cms_url('sitemap.xml')); ?></a></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:10px; border-bottom:1px solid #f0f0f1; font-weight:600;">PHP Version</td>
+                                        <td style="padding:10px; border-bottom:1px solid #f0f0f1;"><?php echo PHP_VERSION; ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:10px; border-bottom:1px solid #f0f0f1; font-weight:600;">Memory Limit</td>
+                                        <td style="padding:10px; border-bottom:1px solid #f0f0f1;"><?php echo ini_get('memory_limit'); ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:10px; border-bottom:1px solid #f0f0f1; font-weight:600;">Max Upload Size</td>
+                                        <td style="padding:10px; border-bottom:1px solid #f0f0f1;"><?php echo ini_get('upload_max_filesize'); ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:10px; border-bottom:1px solid #f0f0f1; font-weight:600;">Post Max Size</td>
+                                        <td style="padding:10px; border-bottom:1px solid #f0f0f1;"><?php echo ini_get('post_max_size'); ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:10px; font-weight:600;">Server Software</td>
+                                        <td style="padding:10px;"><?php echo htmlspecialchars($_SERVER['SERVER_SOFTWARE'] ?? 'Unknown'); ?></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <p style="margin:20px 0 0; font-size:12px; color:var(--mid);">All configuration values are retrieved directly from your server's PHP environment.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="maintenance-panel" class="wp-panel wp-panel-wide <?php echo $mainTab === 'maintenance' ? 'active' : ''; ?>">
+                    <h1 class="wp-heading-inline">Maintenance Mode</h1>
+                    <hr class="wp-header-end">
+                    
+                    <div class="postbox admin-form-simple" style="max-width:600px;">
+                        <div class="postbox-inner">
+                            <form method="post">
+                                <input type="hidden" name="cms_csrf" value="<?php echo htmlspecialchars($csrf); ?>">
+                                <input type="hidden" name="admin_return_tab" value="maintenance">
+                                
+                                <div style="display:flex; align-items:center; gap:20px; padding:20px; background:<?php echo !empty($siteSet['maintenance_mode']) ? 'rgba(239,68,68,0.05)' : 'rgba(16,185,129,0.05)'; ?>; border:1px solid <?php echo !empty($siteSet['maintenance_mode']) ? 'rgba(239,68,68,0.1)' : 'rgba(16,185,129,0.1)'; ?>; margin-bottom:24px;">
+                                    <div style="font-size:24px; color:<?php echo !empty($siteSet['maintenance_mode']) ? '#ef4444' : '#10b981'; ?>;">
+                                        <i class="fas <?php echo !empty($siteSet['maintenance_mode']) ? 'fa-exclamation-triangle' : 'fa-check-circle'; ?>"></i>
+                                    </div>
+                                    <div>
+                                        <h4 style="margin:0; font-size:16px;">Status: <?php echo !empty($siteSet['maintenance_mode']) ? 'Offline (Maintenance)' : 'Live / Online'; ?></h4>
+                                        <p style="margin:4px 0 0; font-size:13px; color:var(--mid);">
+                                            <?php echo !empty($siteSet['maintenance_mode']) ? 'Visitors currently see the maintenance message.' : 'Your website is visible to the public.'; ?>
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="maint-row" style="margin-bottom:24px; display:flex; gap:12px; align-items:flex-start;">
+                                    <input type="hidden" name="maintenance_mode" value="0">
+                                    <input type="checkbox" name="maintenance_mode" id="mt-toggle" value="1" <?php echo !empty($siteSet['maintenance_mode']) ? 'checked' : ''; ?> style="margin-top:4px;">
+                                    <label for="mt-toggle" style="font-size:14px; line-height:1.5;">
+                                        <strong>Enable Maintenance Mode</strong><br>
+                                        <span style="color:var(--mid); font-size:12px;">When enabled, visitors will see a "Site under maintenance" message. You will still be able to use the admin panel.</span>
+                                    </label>
+                                </div>
+
+                                <button type="submit" name="save_site_settings" class="button button-primary" style="padding:0 24px; height:36px;">Update Status</button>
+                            </form>
+                        </div>
                     </div>
                 </div>
 
                 <!-- EDITOR (PAGES) -->
-                <div class="wp-edit" id="editor-bar" style="display:<?php echo ($mainTab === 'pages') ? 'flex' : 'none'; ?>;">
+                <div class="wp-edit" id="editor-bar" style="display:<?php echo ($mainTab === 'pages' && isset($_GET['edit']) && $_GET['edit'] !== '') ? 'flex' : 'none'; ?>;">
                     <?php if ($pageEditorEmptyReadonly): ?>
                     <div class="edit-header">
                         <h3 style="margin:0; font-size:14px;">Pages (view only)</h3>
@@ -998,6 +1072,9 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                     <form id="page-editor-form" action="viv-admin.php" method="POST" class="<?php echo $pageEditorReadonly ? 'page-editor--readonly' : ''; ?>" style="display:contents;" data-is-new="<?php echo $editData ? '0' : '1'; ?>" data-read-only="<?php echo $pageEditorReadonly ? '1' : '0'; ?>"<?php echo $pageEditorReadonly ? ' onsubmit="return false;"' : ''; ?>>
                         <input type="hidden" name="cms_csrf" value="<?php echo htmlspecialchars($csrf); ?>">
                         <input type="hidden" name="current_slug" value="<?php echo $editData ? htmlspecialchars($editData['slug']) : ''; ?>">
+                        <div style="padding:10px 16px;background:var(--pg);border-bottom:1px solid var(--rule-l);">
+                            <a href="viv-admin.php" style="color:var(--accent);text-decoration:none;font-size:13px;font-weight:600;"><i class="fas fa-chevron-left"></i> All Pages</a>
+                        </div>
                         <div class="edit-header">
                             <h3 style="margin:0; font-size:14px;"><?php
                                 if ($pageEditorReadonly) {
@@ -1630,6 +1707,11 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                     var cfb = cff.querySelector('button[name="save_contact_form"]');
                     if (cfb) { cfb.click(); return; }
                 }
+                var maint = document.getElementById('maintenance-panel');
+                if (maint && maint.classList.contains('active')) {
+                    var mtb = maint.querySelector('button[name="save_site_settings"]');
+                    if (mtb) { mtb.click(); return; }
+                }
                 var us = document.getElementById('users-panel');
                 var ueb = document.getElementById('user-edit-bar');
                 if (us && us.classList.contains('active') && isShown(ueb)) {
@@ -1637,12 +1719,12 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                     if (ub) { ub.click(); return; }
                 }
                 var eb = document.getElementById('editor-bar');
-                var pg = document.getElementById('pages-panel');
-                if (pg && pg.classList.contains('active') && isShown(eb)) {
+                if (isShown(eb)) {
                     var pe = document.getElementById('page-editor-form');
                     if (pe && pe.getAttribute('data-read-only') === '1') return;
                     var pb = eb.querySelector('button[name="create_page"]');
                     if (pb) pb.click();
+                    return;
                 }
             });
         })();
