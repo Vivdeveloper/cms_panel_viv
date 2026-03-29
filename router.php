@@ -42,6 +42,11 @@ if ($uri !== '/' && $uri !== '' && is_dir($path)) {
     return false;
 }
 
+if ($uri === '/viv-admin') {
+    require $docroot . '/viv-admin.php';
+    return true;
+}
+
 // Smart Media Routing: If file not in root, check in uploads/
 $mediaExts = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'pdf', 'mp4', 'mp3', 'zip'];
 $uriExt = strtolower(pathinfo($uri, PATHINFO_EXTENSION));

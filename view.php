@@ -76,7 +76,7 @@ $bodyTpl   = cms_page_template_body_classes($pageTpl);
 <body class="<?php echo cms_escape($bodyTpl); ?>">
     <?php cms_echo_site_html_snippet('inject_body_open_html'); ?>
     <?php if (!$published && cms_is_admin_preview()): ?>
-    <div class="cms-draft-banner" role="status">Draft preview — not visible to the public. <a href="admin.php?edit=<?php echo cms_escape($slug); ?>" style="color:#fff;margin-left:8px;">Edit</a></div>
+    <div class="cms-draft-banner" role="status">Draft preview — not visible to the public. <a href="viv-admin.php?edit=<?php echo cms_escape($slug); ?>" style="color:#fff;margin-left:8px;">Edit</a></div>
     <?php endif; ?>
     <?php if ($pageTpl !== 'canvas'): ?>
     <?php getPanel(); ?>

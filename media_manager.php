@@ -4,13 +4,13 @@ require_once __DIR__ . '/cms_core.php';
 require_once __DIR__ . '/admin_menu.php';
 
 if (!isset($_SESSION['is_admin']) || $_SESSION['is_admin'] !== true) {
-    header("Location: admin.php");
+    header("Location: viv-admin.php");
     exit;
 }
 $menuUserRecord = cms_current_user_record();
 $allowedMenuKeys = cms_user_allowed_menu_keys($menuUserRecord);
 if (!cms_user_may_access_menu_key($menuUserRecord, 'media')) {
-    header('Location: admin.php?tab=' . rawurlencode($allowedMenuKeys[0] ?? 'pages'));
+    header('Location: viv-admin.php?tab=' . rawurlencode($allowedMenuKeys[0] ?? 'pages'));
     exit;
 }
 
@@ -115,18 +115,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['media_file']) && is_
     exit;
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_media'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['delete_media']) || isset($_POST['bulk_delete']))) {
     if (!cms_verify_csrf_post()) {
         header('Location: media_manager.php?delete_err=csrf');
         exit;
     }
-    $fileToRemove = basename((string) ($_POST['media_basename'] ?? ''));
-    if ($fileToRemove !== '') {
-        $fullPath = $uploadDir . '/' . $fileToRemove;
+    
+    $filesToRemove = [];
+    if (isset($_POST['bulk_delete'])) {
+        if (is_array($_POST['media_items'] ?? null)) {
+            foreach ($_POST['media_items'] as $item) {
+                $filesToRemove[] = basename((string)$item);
+            }
+        }
+    } else {
+        $filesToRemove[] = basename((string) ($_POST['media_basename'] ?? ''));
+    }
+
+    $deletedCount = 0;
+    foreach ($filesToRemove as $f) {
+        if ($f !== '') {
+            $fullPath = $uploadDir . '/' . $f;
+            if (is_file($fullPath)) {
+                if (@unlink($fullPath)) { $deletedCount++; }
+            }
+        }
+    }
+
+    if ($deletedCount > 0) {
+        header('Location: media_manager.php?deleted=' . $deletedCount);
+        exit;
+    }
+    header('Location: media_manager.php?delete_err=1');
+    exit;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['delete_one'])) {
+    if (!cms_verify_csrf_get()) {
+        header('Location: media_manager.php?delete_err=csrf');
+        exit;
+    }
+    $f = basename((string)$_GET['delete_one']);
+    if ($f !== '') {
+        $fullPath = $uploadDir . '/' . $f;
         if (is_file($fullPath)) {
-            unlink($fullPath);
-            header('Location: media_manager.php?deleted=1');
-            exit;
+            if (@unlink($fullPath)) {
+                header('Location: media_manager.php?deleted=1');
+                exit;
+            }
         }
     }
     header('Location: media_manager.php?delete_err=1');
@@ -196,6 +232,7 @@ $sysVer = getSystemVersion();
         href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap">
     <link rel="stylesheet" href="<?php echo cms_url('admin_style.css'); ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="icon" type="image/svg+xml" href="<?php echo cms_generate_text_favicon_svg(cms_brand()); ?>">
     <style>
         .media-grid-item-inner { position: relative; }
         .media-copy-btn {
@@ -236,6 +273,11 @@ $sysVer = getSystemVersion();
             letter-spacing: 0.05em;
         }
         .media-copy-btn--text:hover { text-decoration: underline; background: none; }
+        
+        /* Bulk selection styles */
+        .media-grid-item.is-selected .media-grid-item-inner { outline: 3px solid var(--accent); outline-offset: -3px; }
+        .media-list-table tr.is-selected { background: rgba(79, 172, 254, 0.05); }
+        .media-bulk-checkbox { cursor: pointer; width: 16px; height: 16px; accent-color: var(--accent); }
     </style>
 </head>
 
@@ -327,7 +369,8 @@ if (!empty($_GET['uploaded'])) {
                             echo '<div class="notice notice-error"><p>' . htmlspecialchars($ueMsg) . ' (' . htmlspecialchars($ue) . ')</p></div>';
                         }
 if (!empty($_GET['deleted'])) {
-    echo '<div class="notice notice-success is-dismissible"><p>File deleted.</p></div>';
+    $count = (int)$_GET['deleted'];
+    echo '<div class="notice notice-success is-dismissible"><p>' . $count . ' ' . ($count === 1 ? 'file' : 'files') . ' deleted.</p></div>';
 }
 if (!empty($_GET['delete_err'])) {
     $errNotice = ($_GET['delete_err'] === 'csrf' ? 'Security check failed. Try again.' : 'Could not delete that file.');
@@ -338,141 +381,91 @@ if (!empty($_GET['delete_err'])) {
                         <div class="postbox media-library view-grid" id="media-library">
                             <h2 class="postbox-header">Uploads</h2>
                             <div class="postbox-inner">
-                                <div class="media-toolbar-inner">
-                                    <p class="description" style="margin:0; max-width:520px;">Manage files in the
-                                        <code>uploads</code> folder. Switch between grid and list like WordPress.
-                                    </p>
-                                    <span class="media-count"><strong>
-                                            <?php echo count($items); ?>
-                                        </strong>
-                                        <?php echo count($items) === 1 ? 'item' : 'items'; ?>
-                                    </span>
-                                </div>
+                                    <form method="post" id="media-bulk-form">
+                                    <input type="hidden" name="cms_csrf" value="<?php echo htmlspecialchars($csrf); ?>">
+                                    <div class="media-bulk-actions" style="display:none;align-items:center;gap:12px;" id="media-bulk-actions">
+                                        <span style="font-size:12px;color:var(--mid);font-weight:600;"><span id="bulk-select-count">0</span> selected</span>
+                                        <button type="submit" name="bulk_delete" class="button button-secondary" style="color:var(--red);border-color:rgba(193,18,31,0.2);background:rgba(193,18,31,0.03);" onclick="return confirm('Delete selected files?');">
+                                            <i class="fas fa-trash-alt" aria-hidden="true" style="margin-right:6px;"></i> Bulk Delete
+                                        </button>
+                                    </div>
+                                    <div class="media-toolbar-inner" id="media-default-toolbar">
+                                        <p class="description" style="margin:0; max-width:520px;">Manage files in the <code>uploads</code> folder. Switch between grid and list like WordPress.</p>
+                                        <span class="media-count"><strong><?php echo count($items); ?></strong> <?php echo count($items) === 1 ? 'item' : 'items'; ?></span>
+                                    </div>
 
-                                <?php if (count($items) === 0): ?>
-                                <div class="media-empty">
-                                    <span class="dashicons-placeholder" aria-hidden="true"><i
-                                            class="fas fa-images"></i></span>
-                                    No items found in the library. Use <strong>Add media</strong> to upload.
-                                </div>
-                                <?php
-else: ?>
-                                <div class="media-grid-wrap">
-                                    <ul class="media-grid" role="list">
-                                        <?php foreach ($items as $it): ?>
-                                        <li class="media-grid-item">
-                                            <div class="media-grid-item-inner">
-                                                <a href="<?php echo htmlspecialchars($it['url']); ?>" target="_blank"
-                                                    rel="noopener" class="media-grid-card">
-                                                    <span class="media-grid-thumb">
-                                                        <?php if ($it['is_image']): ?>
-                                                        <img src="<?php echo htmlspecialchars($it['url']); ?>" alt=""
-                                                            loading="lazy" width="280" height="280">
-                                                        <?php
-        else: ?>
-                                                        <span class="media-grid-icon" aria-hidden="true"><i
-                                                                class="fas fa-file"></i></span>
-                                                        <?php
-        endif; ?>
-                                                    </span>
-                                                    <span class="media-grid-caption">
-                                                        <?php echo htmlspecialchars($it['name']); ?>
-                                                    </span>
-                                                </a>
-                                                <button type="button" class="media-copy-btn" title="Copy public URL"
-                                                        aria-label="Copy URL of <?php echo htmlspecialchars($it['name'], ENT_QUOTES, 'UTF-8'); ?>"
-                                                        onclick="cmsCopyMediaUrl('<?php echo htmlspecialchars($it['url'], ENT_QUOTES, 'UTF-8'); ?>', this)">
-                                                        <i class="fas fa-link" aria-hidden="true"></i>
-                                                </button>
-                                                <form method="post" class="media-delete-form media-delete-form--grid"
-                                                    onsubmit="return confirm('Delete this file? This cannot be undone.');">
-                                                    <input type="hidden" name="cms_csrf"
-                                                        value="<?php echo htmlspecialchars($csrf); ?>">
-                                                    <input type="hidden" name="delete_media" value="1">
-                                                    <input type="hidden" name="media_basename"
-                                                        value="<?php echo htmlspecialchars($it['name'], ENT_QUOTES, 'UTF-8'); ?>">
-                                                    <button type="submit" class="media-delete-btn" title="Delete file"
-                                                        aria-label="Delete <?php echo htmlspecialchars($it['name'], ENT_QUOTES, 'UTF-8'); ?>"><i
-                                                            class="fas fa-trash-alt" aria-hidden="true"></i></button>
-                                                </form>
-                                            </div>
-                                        </li>
-                                        <?php
-    endforeach; ?>
-                                    </ul>
-                                </div>
-
-                                <div class="media-list-wrap">
-                                    <table class="media-list-table">
-                                        <thead>
-                                            <tr>
-                                                <th class="col-thumb" scope="col">File</th>
-                                                <th scope="col">Name</th>
-                                                <th scope="col">Uploaded</th>
-                                                <th scope="col">Size</th>
-                                                <th class="col-actions" scope="col"><span
-                                                        class="screen-reader-text">Actions</span></th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
+                                    <?php if (count($items) === 0): ?>
+                                    <div class="media-empty">
+                                        <span class="dashicons-placeholder" aria-hidden="true"><i class="fas fa-images"></i></span>
+                                        No items found in the library. Use <strong>Add media</strong> to upload.
+                                    </div>
+                                    <?php else: ?>
+                                    <div class="media-grid-wrap">
+                                        <ul class="media-grid" role="list">
                                             <?php foreach ($items as $it): ?>
-                                            <tr>
-                                                <td class="col-thumb">
-                                                    <?php if ($it['is_image']): ?>
-                                                    <a href="<?php echo htmlspecialchars($it['url']); ?>"
-                                                        target="_blank" rel="noopener"><img class="media-list-thumb"
-                                                            src="<?php echo htmlspecialchars($it['url']); ?>"
-                                                            alt=""></a>
-                                                    <?php
-        else: ?>
-                                                    <span class="media-list-file-icon"><i class="fas fa-file"
-                                                            aria-hidden="true"></i></span>
-                                                    <?php
-        endif; ?>
-                                                </td>
-                                                <td>
-                                                    <a class="file-link"
-                                                        href="<?php echo htmlspecialchars($it['url']); ?>"
-                                                        target="_blank" rel="noopener">
-                                                        <?php echo htmlspecialchars($it['name']); ?>
+                                            <li class="media-grid-item">
+                                                <div class="media-grid-item-inner">
+                                                    <label class="media-item-checkbox-wrapper" style="position:absolute;top:10px;left:10px;z-index:20;background:rgba(255,255,255,0.9);width:22px;height:22px;border-radius:4px;border:1px solid rgba(0,0,0,0.1);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+                                                        <input type="checkbox" name="media_items[]" value="<?php echo htmlspecialchars($it['name']); ?>" class="media-bulk-checkbox" onchange="updateBulkActions()">
+                                                    </label>
+                                                    <a href="<?php echo htmlspecialchars($it['url']); ?>" target="_blank" rel="noopener" class="media-grid-card">
+                                                        <span class="media-grid-thumb">
+                                                            <?php if ($it['is_image']): ?>
+                                                            <img src="<?php echo htmlspecialchars($it['url']); ?>" alt="" loading="lazy" width="280" height="280">
+                                                            <?php else: ?>
+                                                            <span class="media-grid-icon" aria-hidden="true"><i class="fas fa-file"></i></span>
+                                                            <?php endif; ?>
+                                                        </span>
+                                                        <span class="media-grid-caption"><?php echo htmlspecialchars($it['name']); ?></span>
                                                     </a>
-                                                    <div
-                                                        style="font-size:10px; color:var(--mid); text-transform:uppercase; letter-spacing:0.1em; font-weight:600; margin-top:2px;">
-                                                        <?php echo htmlspecialchars($it['ext']); ?>
-                                                    </div>
-                                                </td>
-                                                <td class="col-meta">
-                                                    <?php echo date('M j, Y g:i a', $it['mtime']); ?>
-                                                </td>
-                                                <td class="col-meta">
-                                                    <?php echo htmlspecialchars(formatBytes($it['size'])); ?>
-                                                </td>
-                                                <td class="col-actions">
-                                                        <button type="button" class="media-copy-btn media-copy-btn--text"
-                                                                title="Copy public URL"
-                                                                onclick="cmsCopyMediaUrl('<?php echo htmlspecialchars($it['url'], ENT_QUOTES, 'UTF-8'); ?>', this)">Copy URL</button>
-                                                        <form method="post"
-                                                            class="media-delete-form media-delete-form--list"
-                                                            style="display:inline;margin:0;"
-                                                            onsubmit="return confirm('Delete this file? This cannot be undone.');">
-                                                            <input type="hidden" name="cms_csrf"
-                                                                value="<?php echo htmlspecialchars($csrf); ?>">
-                                                            <input type="hidden" name="delete_media" value="1">
-                                                            <input type="hidden" name="media_basename"
-                                                                value="<?php echo htmlspecialchars($it['name'], ENT_QUOTES, 'UTF-8'); ?>">
-                                                            <button type="submit"
-                                                                class="media-delete-btn media-delete-btn--text"
-                                                                title="Delete file permanently">Delete</button>
-                                                        </form>
-                                                </td>
-                                            </tr>
-                                            <?php
-    endforeach; ?>
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <?php
-endif; ?>
+                                                    <button type="button" class="media-copy-btn" title="Copy public URL" onclick="cmsCopyMediaUrl('<?php echo htmlspecialchars($it['url'], ENT_QUOTES, 'UTF-8'); ?>', this)"><i class="fas fa-link" aria-hidden="true"></i></button>
+                                                    <button type="button" class="media-delete-btn" title="Delete file" onclick="if(confirm('Delete this file?')){ window.location.href='media_manager.php?delete_one=<?php echo urlencode($it['name']); ?>&cms_csrf=<?php echo $csrf; ?>'; }"><i class="fas fa-trash-alt" aria-hidden="true"></i></button>
+                                                </div>
+                                            </li>
+                                            <?php endforeach; ?>
+                                        </ul>
+                                    </div>
+
+                                    <div class="media-list-wrap">
+                                        <table class="media-list-table">
+                                            <thead>
+                                                <tr>
+                                                    <th style="width:40px;text-align:center;"><input type="checkbox" id="select-all-media" onchange="toggleSelectAllMedia(this)"></th>
+                                                    <th class="col-thumb" scope="col">File</th>
+                                                    <th scope="col">Name</th>
+                                                    <th scope="col">Uploaded</th>
+                                                    <th scope="col">Size</th>
+                                                    <th class="col-actions" scope="col"><span class="screen-reader-text">Actions</span></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <?php foreach ($items as $it): ?>
+                                                <tr>
+                                                    <td style="text-align:center;"><input type="checkbox" name="media_items[]" value="<?php echo htmlspecialchars($it['name']); ?>" class="media-bulk-checkbox" onchange="updateBulkActions()"></td>
+                                                    <td class="col-thumb">
+                                                        <?php if ($it['is_image']): ?>
+                                                        <a href="<?php echo htmlspecialchars($it['url']); ?>" target="_blank" rel="noopener"><img class="media-list-thumb" src="<?php echo htmlspecialchars($it['url']); ?>" alt=""></a>
+                                                        <?php else: ?>
+                                                        <span class="media-list-file-icon"><i class="fas fa-file" aria-hidden="true"></i></span>
+                                                        <?php endif; ?>
+                                                    </td>
+                                                    <td>
+                                                        <a class="file-link" href="<?php echo htmlspecialchars($it['url']); ?>" target="_blank" rel="noopener"><?php echo htmlspecialchars($it['name']); ?></a>
+                                                        <div style="font-size:10px; color:var(--mid); text-transform:uppercase; letter-spacing:0.1em; font-weight:600; margin-top:2px;"><?php echo htmlspecialchars($it['ext']); ?></div>
+                                                    </td>
+                                                    <td class="col-meta"><?php echo date('M j, Y g:i a', $it['mtime']); ?></td>
+                                                    <td class="col-meta"><?php echo htmlspecialchars(formatBytes($it['size'])); ?></td>
+                                                    <td class="col-actions">
+                                                        <button type="button" class="media-copy-btn media-copy-btn--text" title="Copy public URL" onclick="cmsCopyMediaUrl('<?php echo htmlspecialchars($it['url'], ENT_QUOTES, 'UTF-8'); ?>', this)">Copy URL</button>
+                                                        <button type="button" class="media-delete-btn media-delete-btn--text" onclick="if(confirm('Delete this file?')){ window.location.href='media_manager.php?delete_one=<?php echo urlencode($it['name']); ?>&cms_csrf=<?php echo $csrf; ?>'; }">Delete</button>
+                                                    </td>
+                                                </tr>
+                                                <?php endforeach; ?>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <?php endif; ?>
+                                </form>
                             </div>
                         </div>
                     </div>
@@ -552,6 +545,39 @@ endif; ?>
                 });
             });
         })();
+
+        function toggleSelectAllMedia(master) {
+            const boxes = document.querySelectorAll('.media-bulk-checkbox');
+            boxes.forEach(cb => cb.checked = master.checked);
+            updateBulkActions();
+        }
+
+        function updateBulkActions() {
+            const boxes = document.querySelectorAll('.media-bulk-checkbox');
+            const selected = Array.from(boxes).filter(cb => cb.checked);
+            const bulkBar = document.getElementById('media-bulk-actions');
+            const defaultBar = document.getElementById('media-default-toolbar');
+            const countEl = document.getElementById('bulk-select-count');
+            
+            // Update visual state
+            boxes.forEach(cb => {
+                const row = cb.closest('tr');
+                const card = cb.closest('.media-grid-item');
+                if (row) row.classList.toggle('is-selected', cb.checked);
+                if (card) card.classList.toggle('is-selected', cb.checked);
+            });
+
+            if (selected.length > 0) {
+                bulkBar.style.display = 'flex';
+                defaultBar.style.display = 'none';
+                countEl.textContent = selected.length;
+            } else {
+                bulkBar.style.display = 'none';
+                defaultBar.style.display = 'flex';
+                const master = document.getElementById('select-all-media');
+                if (master) master.checked = false;
+            }
+        }
     </script>
 </body>
 

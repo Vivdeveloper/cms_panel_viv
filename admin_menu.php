@@ -4,17 +4,17 @@
  */
 function cms_admin_nav_items() {
     static $defs = [
-        'pages'     => ['href' => 'admin.php', 'icon' => 'fa-file-alt', 'label' => 'Pages'],
-        'trash'     => ['href' => 'admin.php?tab=trash', 'icon' => 'fa-trash-alt', 'label' => 'Trash'],
+        'pages'     => ['href' => 'viv-admin.php', 'icon' => 'fa-file-alt', 'label' => 'Pages'],
+        'trash'     => ['href' => 'viv-admin.php?tab=trash', 'icon' => 'fa-trash-alt', 'label' => 'Trash'],
         'media'     => ['href' => 'media_manager.php', 'icon' => 'fa-camera-retro', 'label' => 'Media'],
         'backup'    => ['href' => 'backup.php', 'icon' => 'fa-cloud-download-alt', 'label' => 'Backup'],
-        'settings'  => ['href' => 'admin.php?tab=settings', 'icon' => 'fa-cog', 'label' => 'Site settings'],
-        'html_tags' => ['href' => 'admin.php?tab=html_tags', 'icon' => 'fa-code', 'label' => 'HTML Tags'],
-        'contact'       => ['href' => 'admin.php?tab=contact', 'icon' => 'fa-phone-alt', 'label' => 'Call now'],
-        'contact_form'  => ['href' => 'admin.php?tab=contact_form', 'icon' => 'fa-envelope-open-text', 'label' => 'Contact form'],
-        'crm'           => ['href' => 'admin.php?tab=crm', 'icon' => 'fa-clipboard-list', 'label' => 'CRM'],
-        'users'         => ['href' => 'admin.php?tab=users', 'icon' => 'fa-users-cog', 'label' => 'User Roles'],
-        'config'    => ['href' => 'admin.php?tab=config', 'icon' => 'fa-server', 'label' => 'Server Config'],
+        'settings'  => ['href' => 'viv-admin.php?tab=settings', 'icon' => 'fa-cog', 'label' => 'Site settings'],
+        'html_tags' => ['href' => 'viv-admin.php?tab=html_tags', 'icon' => 'fa-code', 'label' => 'HTML Tags'],
+        'contact'       => ['href' => 'viv-admin.php?tab=contact', 'icon' => 'fa-phone-alt', 'label' => 'Call now'],
+        'contact_form'  => ['href' => 'viv-admin.php?tab=contact_form', 'icon' => 'fa-envelope-open-text', 'label' => 'Contact form'],
+        'crm'           => ['href' => 'viv-admin.php?tab=crm', 'icon' => 'fa-clipboard-list', 'label' => 'CRM'],
+        'users'         => ['href' => 'viv-admin.php?tab=users', 'icon' => 'fa-users-cog', 'label' => 'User Roles'],
+        'config'    => ['href' => 'viv-admin.php?tab=config', 'icon' => 'fa-server', 'label' => 'Server Config'],
     ];
     $items = [];
     foreach (cms_admin_menu_keys() as $key) {
@@ -82,7 +82,7 @@ function cms_render_admin_sidebar_nav(array $opts = []) {
     }
 
     echo '<div class="menu-footer">' . "\n";
-    echo '<a href="admin.php?logout=1"><i class="fas fa-power-off" aria-hidden="true"></i> Log Out</a>' . "\n";
+    echo '<a href="viv-admin.php?logout=1"><i class="fas fa-power-off" aria-hidden="true"></i> Log Out</a>' . "\n";
     echo '</div>' . "\n";
     echo '</nav>' . "\n";
 }

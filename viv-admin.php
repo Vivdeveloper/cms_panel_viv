@@ -11,7 +11,7 @@ if (isset($_GET['logout'])) {
         setcookie(session_name(), '', time() - 42000, $p['path'], $p['domain'], $p['secure'], $p['httponly']);
     }
     session_destroy();
-    header("Location: admin.php");
+    header("Location: viv-admin.php");
     exit;
 }
 
@@ -42,7 +42,7 @@ if (!isset($_SESSION['is_admin']) || $_SESSION['is_admin'] !== true) {
                 cms_login_attempts_reset();
                 $_SESSION['is_admin'] = true;
                 $_SESSION['cms_username'] = $resolved;
-                header('Location: admin.php');
+                header('Location: viv-admin.php');
                 exit;
             }
         }
@@ -60,6 +60,7 @@ if (!isset($_SESSION['is_admin']) || $_SESSION['is_admin'] !== true) {
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
         <link rel="stylesheet" href="<?php echo cms_url('admin_style.css'); ?>">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+        <link rel="icon" type="image/svg+xml" href="<?php echo cms_generate_text_favicon_svg(cms_brand()); ?>">
     </head>
     <body class="wp-login-body cms-login-page">
         <div class="cms-login-bg" aria-hidden="true"></div>
@@ -158,7 +159,7 @@ $pageEditorReadonly = $cmsPagesReadOnly && $editData;
 $pageEditorEmptyReadonly = $cmsPagesReadOnly && !$editData;
 if (!in_array($mainTab, $allowedMenuKeys, true)) {
     $fallbackTab = $allowedMenuKeys[0] ?? 'pages';
-    header('Location: admin.php?tab=' . rawurlencode($fallbackTab));
+    header('Location: viv-admin.php?tab=' . rawurlencode($fallbackTab));
     exit;
 }
 $allUsers     = getAllUsers();
@@ -186,6 +187,7 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap">
     <link rel="stylesheet" href="<?php echo cms_url('admin_style.css'); ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="icon" type="image/svg+xml" href="<?php echo cms_generate_text_favicon_svg(cms_brand()); ?>">
 </head>
 <body class="wp-admin-skin wp-admin-dashboard<?php echo cms_is_maintenance_mode() ? ' admin-public-maintenance' : ''; ?>">
     <div class="wp-admin-shell">
@@ -237,8 +239,9 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                     'read_only' => 'Your role can view pages only. You cannot create, edit, or change the trash.',
                     'email_taken' => 'That email is already used by another user. Choose a different email.',
                     'email_invalid' => 'Enter a valid email address, or leave the email field empty.',
+                    'user_exists' => 'That email or username is already in use. Try a different one.',
                 ];
-                $adminToastStripKeys = ['saved', 'deleted', 'trashed', 'restored', 'permanently_deleted', 'settings_saved', 'contact_saved', 'contact_form_saved', 'contact_form_fields_err', 'crm_updated', 'crm_locked', 'pwd_ok', 'patched', 'user_updated', 'user_deleted'];
+                $adminToastStripKeys = ['saved', 'deleted', 'trashed', 'restored', 'permanently_deleted', 'settings_saved', 'contact_saved', 'contact_form_saved', 'contact_form_fields_err', 'crm_updated', 'crm_locked', 'pwd_ok', 'patched', 'user_updated', 'user_deleted', 'user_created'];
                 $adminToastMessage = '';
                 $adminToastByParam = [
                     'saved'           => 'Page saved.',
@@ -254,6 +257,7 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                     'patched'         => 'Version bumped (patch).',
                     'user_updated'    => 'User saved (role, email, menu access).',
                     'user_deleted'    => 'User removed.',
+                    'user_created'    => 'User created successfully.',
                 ];
                 foreach ($adminToastByParam as $param => $msg) {
                     if (!empty($_GET[$param])) {
@@ -306,12 +310,12 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
                         <span style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--mid);">All Pages</span>
                         <?php if (!$cmsPagesReadOnly): ?>
-                        <a href="admin.php" class="button" style="height:26px;font-size:11px;padding:0 10px;">+ New</a>
+                        <a href="viv-admin.php" class="button" style="height:26px;font-size:11px;padding:0 10px;">+ New</a>
                         <?php endif; ?>
                     </div>
                     <div class="pages-list">
                         <?php foreach ($allPages as $p): ?>
-                        <a href="admin.php?edit=<?php echo htmlspecialchars($p['slug'], ENT_QUOTES, 'UTF-8'); ?>" class="pages-list-item <?php echo (isset($_GET['edit']) && $_GET['edit'] === $p['slug']) ? 'is-active' : ''; ?>">
+                        <a href="viv-admin.php?edit=<?php echo htmlspecialchars($p['slug'], ENT_QUOTES, 'UTF-8'); ?>" class="pages-list-item <?php echo (isset($_GET['edit']) && $_GET['edit'] === $p['slug']) ? 'is-active' : ''; ?>">
                             <div class="pages-list-item-inner">
                                 <div class="pages-list-item-main">
                                     <div class="pages-list-title">
@@ -328,7 +332,7 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                                         <span onclick="event.preventDefault();event.stopPropagation();cmsCopyPageUrl(<?php echo json_encode(cms_page_url($p['slug'] ?? ''), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>)">Copy URL</span>
                                         <span onclick="event.preventDefault();event.stopPropagation();window.open('<?php echo htmlspecialchars('download_page.php?slug=' . rawurlencode(cms_sanitize_slug((string) ($p['slug'] ?? ''))), ENT_QUOTES); ?>','_blank')">Download</span>
                                         <?php if (!$cmsPagesReadOnly): ?>
-                                        <form method="post" action="admin.php" style="display:inline;margin:0;" onclick="event.stopPropagation();" onsubmit="return confirm('Trash this page?');">
+                                        <form method="post" action="viv-admin.php" style="display:inline;margin:0;" onclick="event.stopPropagation();" onsubmit="return confirm('Trash this page?');">
                                             <input type="hidden" name="cms_csrf" value="<?php echo htmlspecialchars($csrf); ?>">
                                             <input type="hidden" name="post_delete_page" value="1">
                                             <input type="hidden" name="delete_slug" value="<?php echo htmlspecialchars($p['slug']); ?>">
@@ -343,7 +347,7 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                                         ? 'Shown in the public header menu — click to hide'
                                         : 'Not in the public header menu — click to show';
                                     ?>
-                                <form method="post" action="admin.php" class="pages-list-menu-toggle" onclick="event.stopPropagation();" onmousedown="event.stopPropagation();">
+                                <form method="post" action="viv-admin.php" class="pages-list-menu-toggle" onclick="event.stopPropagation();" onmousedown="event.stopPropagation();">
                                     <input type="hidden" name="cms_csrf" value="<?php echo htmlspecialchars($csrf); ?>">
                                     <input type="hidden" name="post_toggle_menu" value="1">
                                     <input type="hidden" name="toggle_menu_slug" value="<?php echo htmlspecialchars($p['slug'], ENT_QUOTES, 'UTF-8'); ?>">
@@ -412,7 +416,7 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                 <div id="users-panel" class="wp-panel <?php echo $mainTab === 'users' ? 'active' : ''; ?>">
                     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
                         <span style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--mid);">All Users</span>
-                        <a href="admin.php?tab=users&amp;user=new" class="button<?php echo ($mainTab === 'users' && $userCompose && ($userQuery === '' || $userQuery === 'new')) ? ' button-primary' : ''; ?>" style="height:26px;font-size:11px;padding:0 10px;">+ New</a>
+                        <a href="viv-admin.php?tab=users&amp;user=new" class="button<?php echo ($mainTab === 'users' && $userCompose && ($userQuery === '' || $userQuery === 'new')) ? ' button-primary' : ''; ?>" style="height:26px;font-size:11px;padding:0 10px;">+ New</a>
                     </div>
                     <div class="pages-list">
                         <?php foreach ($allUsers as $u):
@@ -420,21 +424,22 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                             $norm  = cms_normalize_user_role($u['role'] ?? '');
                             $isActive = $editUserData && ($editUserData['username'] ?? '') === $uname;
                         ?>
-                        <a href="admin.php?tab=users&amp;user=<?php echo urlencode($uname); ?>" class="pages-list-item <?php echo $isActive ? 'is-active' : ''; ?>" aria-label="Edit user <?php echo htmlspecialchars($uname); ?>">
+                        <a href="viv-admin.php?tab=users&amp;user=<?php echo urlencode($uname); ?>" class="pages-list-item <?php echo $isActive ? 'is-active' : ''; ?>" aria-label="Edit user <?php echo htmlspecialchars($uname); ?>">
                             <div class="pages-list-title">
                                 <?php echo htmlspecialchars($uname); ?>
-                                <?php if (strtolower($uname) === 'admin'): ?><span class="status-badge">Primary</span><?php endif; ?>
+                                <?php 
+                                $isPrimary = (strtolower($uname) === 'admin' || strtolower($uname) === 'matmovie01@gmail.com');
+                                if ($isPrimary): ?><span class="status-badge">Primary</span><?php endif; ?>
                             </div>
                             <div class="pages-list-meta">
                                 <span class="page-status-dot <?php echo $norm === 'Administrator' ? 'is-published' : 'is-draft'; ?>"></span>
                                 <?php echo htmlspecialchars($norm); ?>
-                                <?php if (!empty($u['email'])): ?>&middot; <?php echo htmlspecialchars($u['email']); ?><?php endif; ?>
                                 <?php if (!empty($u['created'])): ?>&middot; <?php echo htmlspecialchars($u['created']); ?><?php endif; ?>
                             </div>
                             <div class="pages-list-actions">
                                 <span class="user-list-edit-hint">Edit</span>
-                                <?php if (strtolower($uname) !== 'admin'): ?>
-                                <form method="post" action="admin.php" style="display:inline;margin:0;" onclick="event.stopPropagation();" onsubmit="return confirm('Remove user &quot;<?php echo htmlspecialchars($uname, ENT_QUOTES); ?>&quot;?');">
+                                <?php if (!$isPrimary && (isset($_SESSION['cms_username']) && $_SESSION['cms_username'] !== $uname)): ?>
+                                <form method="post" action="viv-admin.php" style="display:inline;margin:0;" onclick="event.stopPropagation();" onsubmit="return confirm('Remove user &quot;<?php echo htmlspecialchars($uname, ENT_QUOTES); ?>&quot;?');">
                                     <input type="hidden" name="cms_csrf" value="<?php echo htmlspecialchars($csrf); ?>">
                                     <input type="hidden" name="delete_username" value="<?php echo htmlspecialchars($uname); ?>">
                                     <button type="submit" name="delete_user" value="1" class="linklike" style="background:none;border:none;padding:0;font:inherit;color:inherit;cursor:pointer;" aria-label="Delete user">Delete</button>
@@ -490,6 +495,17 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                                         <?php endif; ?>
                                     </div>
                                     <p class="field-hint site-logo-uploader__hint">PNG, JPG, WebP, GIF, or SVG · max 3&nbsp;MB</p>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <span class="site-logo-uploader-label">Auto Favicon</span>
+                                <div class="site-logo-uploader" style="background:rgba(15,23,42,0.02);border:1px solid rgba(15,23,42,0.06);padding:20px;border-radius:14px;display:flex;align-items:center;gap:32px;">
+                                    <div class="site-logo-uploader__preview" style="width:72px;height:72px;min-width:72px;min-height:72px;background:#fff;border:1px solid rgba(15,23,42,0.12);box-shadow:0 12px 32px rgba(0,0,0,0.12);overflow:hidden;border-radius:14px;padding:8px;display:flex;align-items:center;justify-content:center;">
+                                        <img src="<?php echo cms_generate_text_favicon_svg($st['brand'] ?? 'C'); ?>" alt="Favicon" style="width:100%;height:100%;object-fit:contain;border-radius:4px;">
+                                    </div>
+                                    <div style="flex:1; display:flex; align-items:center; border-left:1px solid rgba(15,23,42,0.1); padding-left:32px;">
+                                        <input type="color" id="st-fav-color" name="favicon_bg_color" value="<?php echo htmlspecialchars($st['favicon_bg_color'] !== '' ? $st['favicon_bg_color'] : cms_sanitize_hex_color($st['cta_call_color'] ?? '', '#4facfe')); ?>" style="width:48px;height:48px;padding:0;border:1px solid rgba(15,23,42,0.15);border-radius:8px;cursor:pointer;background:none;box-shadow:0 4px 10px rgba(0,0,0,0.05);">
+                                    </div>
                                 </div>
                             </div>
                             <div class="form-group">
@@ -631,7 +647,7 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                             </form>
                         </div>
                     </div>
-                    <p class="field-hint" style="margin:0;">Configure the page contact form (shortcode, email, SMTP) under <a href="admin.php?tab=contact_form">Contact form</a> in the menu.</p>
+                    <p class="field-hint" style="margin:0;">Configure the page contact form (shortcode, email, SMTP) under <a href="viv-admin.php?tab=contact_form">Contact form</a> in the menu.</p>
                 </div>
 
                 <!-- CONTACT FORM PANEL -->
@@ -763,7 +779,7 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                             </form>
                         </div>
                     </div>
-                    <p class="field-hint" style="margin:0;">Submitted entries from the site form are listed under <a href="admin.php?tab=crm">CRM</a> in the menu.</p>
+                    <p class="field-hint" style="margin:0;">Submitted entries from the site form are listed under <a href="viv-admin.php?tab=crm">CRM</a> in the menu.</p>
                 </div>
 
                 <!-- CRM: contact form leads -->
@@ -798,7 +814,7 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                     <div class="postbox" style="margin-bottom:16px;">
                         <h2 class="postbox-header">Leads</h2>
                         <div class="postbox-inner crm-postbox-inner">
-                            <form method="get" action="admin.php" class="crm-filters">
+                            <form method="get" action="viv-admin.php" class="crm-filters">
                                 <input type="hidden" name="tab" value="crm">
                                 <div class="crm-filters__group">
                                     <label for="crm-filter-select" class="crm-filters__label">Status</label>
@@ -836,7 +852,7 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                                     <label class="crm-filters__label" for="crm-apply-filter-btn">Actions</label>
                                     <div class="crm-filters__btn-row">
                                         <button type="submit" id="crm-apply-filter-btn" class="button button-primary crm-filters__submit">Apply filter</button>
-                                        <a href="admin.php?tab=crm" class="button crm-filters__clear">Clear filters</a>
+                                        <a href="viv-admin.php?tab=crm" class="button crm-filters__clear">Clear filters</a>
                                     </div>
                                 </div>
                             </form>
@@ -862,7 +878,7 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                             <?php if ($crmAll === []): ?>
                             <p style="margin:0;color:var(--mid);font-size:13px;">No submissions yet.</p>
                             <?php elseif ($crmSubs === []): ?>
-                            <p style="margin:0;color:var(--mid);font-size:13px;">No leads match this filter. Try <a href="admin.php?tab=crm">clearing filters</a>.</p>
+                            <p style="margin:0;color:var(--mid);font-size:13px;">No leads match this filter. Try <a href="viv-admin.php?tab=crm">clearing filters</a>.</p>
                             <?php else: ?>
                             <div class="crm-leads-table-wrap" role="region" aria-label="Leads list">
                             <table class="crm-leads-table">
@@ -969,7 +985,7 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                         <p class="field-hint" style="max-width:480px;line-height:1.55;font-size:13px;">Your role can open pages to review content but cannot create or edit them. Select a page on the left to view its fields.</p>
                     </div>
                     <?php else: ?>
-                    <form id="page-editor-form" action="admin.php" method="POST" class="<?php echo $pageEditorReadonly ? 'page-editor--readonly' : ''; ?>" style="display:contents;" data-is-new="<?php echo $editData ? '0' : '1'; ?>" data-read-only="<?php echo $pageEditorReadonly ? '1' : '0'; ?>"<?php echo $pageEditorReadonly ? ' onsubmit="return false;"' : ''; ?>>
+                    <form id="page-editor-form" action="viv-admin.php" method="POST" class="<?php echo $pageEditorReadonly ? 'page-editor--readonly' : ''; ?>" style="display:contents;" data-is-new="<?php echo $editData ? '0' : '1'; ?>" data-read-only="<?php echo $pageEditorReadonly ? '1' : '0'; ?>"<?php echo $pageEditorReadonly ? ' onsubmit="return false;"' : ''; ?>>
                         <input type="hidden" name="cms_csrf" value="<?php echo htmlspecialchars($csrf); ?>">
                         <input type="hidden" name="current_slug" value="<?php echo $editData ? htmlspecialchars($editData['slug']) : ''; ?>">
                         <div class="edit-header">
@@ -1086,18 +1102,14 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                     <?php if ($userCompose): ?>
                     <div class="edit-header">
                         <h3 style="margin:0;font-size:14px;">Add new user</h3>
-                        <button type="submit" form="user-add-form" name="add_user" value="1" class="button button-primary">Add user</button>
                     </div>
                     <div class="edit-body">
                         <form id="user-add-form" method="post">
                             <input type="hidden" name="cms_csrf" value="<?php echo htmlspecialchars($csrf); ?>">
+                            <input type="hidden" name="add_user" value="1">
                             <div class="form-group">
-                                <label for="new-username">Username</label>
-                                <input type="text" id="new-username" name="username" class="wp-input" required autocomplete="username" pattern="[a-zA-Z0-9._-]+" title="Letters, numbers, dot, underscore, hyphen">
-                            </div>
-                            <div class="form-group">
-                                <label for="new-user-email">Email <span class="field-hint" style="font-weight:400;">(optional — used to sign in)</span></label>
-                                <input type="email" id="new-user-email" name="user_email" class="wp-input" autocomplete="email" placeholder="name@example.com">
+                                <label for="new-username">Email or Username</label>
+                                <input type="text" id="new-username" name="username" class="wp-input" required autocomplete="off" data-lpignore="true" data-1p-ignore placeholder="you@example.com or jane_doe">
                             </div>
                             <div class="form-group">
                                 <label for="new-role">Role</label>
@@ -1105,6 +1117,9 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                                     <option value="Administrator">Administrator</option>
                                     <option value="Normal User" selected>Normal User</option>
                                 </select>
+                            </div>
+                            <div style="margin-top:20px;">
+                                <button type="submit" class="button button-primary">Add user</button>
                             </div>
                             <?php $newUserMenuChecked = cms_default_menu_allow_normal(); ?>
                             <fieldset id="user-menu-allow-fieldset-new" style="border:1px solid var(--rule-l);padding:12px 14px;margin-top:14px;border-radius:4px;">
@@ -1120,20 +1135,6 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                                 </div>
                             </fieldset>
                         </form>
-                        <hr style="margin:24px 0;border:0;border-top:1px solid var(--rule-l)">
-                        <p style="font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;margin:0 0 12px;color:var(--ink2);">Change admin password</p>
-                        <form method="post" autocomplete="off" class="admin-change-admin-password-form">
-                            <input type="hidden" name="cms_csrf" value="<?php echo htmlspecialchars($csrf); ?>">
-                            <div class="form-group">
-                                <label for="np1">New password</label>
-                                <div class="admin-pass-row">
-                                    <input type="password" id="np1" name="new_admin_password" class="wp-input admin-pass-input" minlength="8" maxlength="256" required autocomplete="new-password" aria-describedby="np1-hint">
-                                    <button type="button" class="admin-pass-toggle" id="np1-toggle" aria-label="Show password" aria-controls="np1" aria-pressed="false" title="Show password"><i class="fas fa-eye" aria-hidden="true"></i></button>
-                                </div>
-                                <p class="field-hint" id="np1-hint" style="margin-top:6px;">At least 8 characters, max 256, including at least one letter and one number.</p>
-                            </div>
-                            <button type="submit" name="change_admin_password" class="button button-primary">Update password</button>
-                        </form>
                     </div>
                     <?php else:
                     $editMenuChecked = $enorm === 'Administrator'
@@ -1144,12 +1145,12 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                     }
                     ?>
                     <div class="edit-header">
-                        <h3 style="margin:0;font-size:14px;"><?php echo htmlspecialchars($euname); ?></h3>
-                        <button type="submit" form="user-role-form" name="update_user_role" value="1" class="button button-primary">Save user</button>
+                        <h3 style="margin:0;font-size:14px;">Edit Profile: <?php echo htmlspecialchars($euname); ?></h3>
                     </div>
                     <div class="edit-body">
                         <form id="user-role-form" method="post">
                             <input type="hidden" name="cms_csrf" value="<?php echo htmlspecialchars($csrf); ?>">
+                            <input type="hidden" name="update_user_role" value="1">
                             <input type="hidden" name="edit_username" value="<?php echo htmlspecialchars($euname); ?>">
                             <div class="form-group">
                                 <label for="edit-user-role">Role</label>
@@ -1159,8 +1160,11 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label for="edit-user-email">Email <span class="field-hint" style="font-weight:400;">(optional — used to sign in)</span></label>
-                                <input type="email" id="edit-user-email" name="user_email" class="wp-input" autocomplete="email" placeholder="name@example.com" value="<?php echo htmlspecialchars((string) ($editUserData['email'] ?? '')); ?>">
+                                <label for="edit-username">Email or Username</label>
+                                <input type="text" id="edit-username" name="username" class="wp-input" value="<?php echo htmlspecialchars($euname); ?>" required autocomplete="off" data-lpignore="true" data-1p-ignore placeholder="you@example.com or jane_doe">
+                            </div>
+                            <div style="margin-top:20px;">
+                                <button type="submit" class="button button-primary">Save user</button>
                             </div>
                             <fieldset id="user-menu-allow-fieldset-edit" style="border:1px solid var(--rule-l);padding:12px 14px;margin-top:14px;border-radius:4px;">
                                 <legend style="font-size:12px;padding:0 6px;color:var(--ink2);">Menu access</legend>
@@ -1175,7 +1179,9 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                                 </div>
                             </fieldset>
                         </form>
-                        <?php if (strtolower($euname) !== 'admin'): ?>
+                        <?php 
+                        $isEditPrimary = (strtolower($euname) === 'admin' || strtolower($euname) === 'matmovie01@gmail.com');
+                        if (!$isEditPrimary && (isset($_SESSION['cms_username']) && $_SESSION['cms_username'] !== $euname)): ?>
                         <form method="post" style="margin-top:16px;" onsubmit="return confirm('Remove user &quot;<?php echo htmlspecialchars($euname, ENT_QUOTES); ?>&quot;?');">
                             <input type="hidden" name="cms_csrf" value="<?php echo htmlspecialchars($csrf); ?>">
                             <input type="hidden" name="delete_username" value="<?php echo htmlspecialchars($euname); ?>">
@@ -1617,7 +1623,7 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                 var us = document.getElementById('users-panel');
                 var ueb = document.getElementById('user-edit-bar');
                 if (us && us.classList.contains('active') && isShown(ueb)) {
-                    var ub = ueb.querySelector('.edit-header button.button-primary[type="submit"]');
+                    var ub = ueb.querySelector('button.button-primary[type="submit"]');
                     if (ub) { ub.click(); return; }
                 }
                 var eb = document.getElementById('editor-bar');

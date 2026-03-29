@@ -90,6 +90,11 @@ function cms_verify_csrf_post() {
     return is_string($t) && isset($_SESSION['cms_csrf_token']) && hash_equals($_SESSION['cms_csrf_token'], $t);
 }
 
+function cms_verify_csrf_get() {
+    $t = $_GET['cms_csrf'] ?? '';
+    return is_string($t) && isset($_SESSION['cms_csrf_token']) && hash_equals($_SESSION['cms_csrf_token'], $t);
+}
+
 function cms_verify_admin_password($plain) {
     global $pagesDir;
     cms_init_admin_secrets();
@@ -279,7 +284,7 @@ function cms_page_template_body_classes(string $normalizedTpl): string {
 // --- ACCESS CONTROL GATEKEEPER ---
 function checkAdmin() {
     if (!isset($_SESSION['is_admin']) || $_SESSION['is_admin'] !== true) {
-        header('Location: admin.php?error=unauthorized');
+        header('Location: viv-admin.php?error=unauthorized');
         exit;
     }
 }
@@ -299,7 +304,7 @@ function cms_user_can_edit_pages(): bool {
 function cms_require_pages_write(): void {
     checkAdmin();
     if (!cms_user_can_edit_pages()) {
-        header('Location: admin.php?err=read_only');
+        header('Location: viv-admin.php?err=read_only');
         exit;
     }
 }
@@ -359,7 +364,7 @@ function cms_is_safe_trash_basename($name) {
 if (isset($_POST['post_delete_page'])) {
     cms_require_pages_write();
     if (!cms_verify_csrf_post()) {
-        header('Location: admin.php?err=csrf');
+        header('Location: viv-admin.php?err=csrf');
         exit;
     }
     global $trashDir;
@@ -375,7 +380,7 @@ if (isset($_POST['post_delete_page'])) {
         }
         rename($src, $dest);
     }
-    header('Location: admin.php?trashed=1');
+    header('Location: viv-admin.php?trashed=1');
     exit;
 }
 
@@ -383,29 +388,29 @@ if (isset($_POST['post_delete_page'])) {
 if (isset($_POST['post_toggle_menu'])) {
     cms_require_pages_write();
     if (!cms_verify_csrf_post()) {
-        header('Location: admin.php?err=csrf');
+        header('Location: viv-admin.php?err=csrf');
         exit;
     }
     $slug = cms_sanitize_slug($_POST['toggle_menu_slug'] ?? '');
     if ($slug === '') {
-        header('Location: admin.php');
+        header('Location: viv-admin.php');
         exit;
     }
     $path = $pagesDir . $slug . '.json';
     if (!is_file($path)) {
-        header('Location: admin.php');
+        header('Location: viv-admin.php');
         exit;
     }
     $d = json_decode((string) file_get_contents($path), true);
     if (!is_array($d)) {
-        header('Location: admin.php');
+        header('Location: viv-admin.php');
         exit;
     }
     $d['allow_in_menu'] = !cms_page_show_in_public_menu($d);
     $d['updated'] = date('Y-m-d H:i:s');
     file_put_contents($path, json_encode($d, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
     bumpVersion('patch', 'Toggle menu: ' . $slug);
-    header('Location: admin.php');
+    header('Location: viv-admin.php');
     exit;
 }
 
@@ -413,39 +418,39 @@ if (isset($_POST['post_toggle_menu'])) {
 if (isset($_POST['post_restore_page'])) {
     cms_require_pages_write();
     if (!cms_verify_csrf_post()) {
-        header('Location: admin.php?tab=trash&err=csrf');
+        header('Location: viv-admin.php?tab=trash&err=csrf');
         exit;
     }
     global $trashDir;
     $basename = basename((string) ($_POST['trash_file'] ?? ''));
     if (!cms_is_safe_trash_basename($basename)) {
-        header('Location: admin.php?tab=trash');
+        header('Location: viv-admin.php?tab=trash');
         exit;
     }
     $src = $trashDir . $basename;
     if (!is_file($src)) {
-        header('Location: admin.php?tab=trash');
+        header('Location: viv-admin.php?tab=trash');
         exit;
     }
     $content = json_decode((string) file_get_contents($src), true);
     if (!is_array($content)) {
-        header('Location: admin.php?tab=trash');
+        header('Location: viv-admin.php?tab=trash');
         exit;
     }
     $slug = cms_sanitize_slug($content['slug'] ?? '');
     if ($slug === '') {
-        header('Location: admin.php?tab=trash');
+        header('Location: viv-admin.php?tab=trash');
         exit;
     }
     $dest = $pagesDir . $slug . '.json';
     if (is_file($dest)) {
-        header('Location: admin.php?tab=trash&err=restore_slug_exists');
+        header('Location: viv-admin.php?tab=trash&err=restore_slug_exists');
         exit;
     }
     $content['slug'] = $slug;
     file_put_contents($src, json_encode($content));
     rename($src, $dest);
-    header('Location: admin.php?tab=trash&restored=1');
+    header('Location: viv-admin.php?tab=trash&restored=1');
     exit;
 }
 
@@ -453,7 +458,7 @@ if (isset($_POST['post_restore_page'])) {
 if (isset($_POST['post_permanent_delete_page'])) {
     cms_require_pages_write();
     if (!cms_verify_csrf_post()) {
-        header('Location: admin.php?tab=trash&err=csrf');
+        header('Location: viv-admin.php?tab=trash&err=csrf');
         exit;
     }
     global $trashDir;
@@ -464,7 +469,7 @@ if (isset($_POST['post_permanent_delete_page'])) {
             unlink($path);
         }
     }
-    header('Location: admin.php?tab=trash&permanently_deleted=1');
+    header('Location: viv-admin.php?tab=trash&permanently_deleted=1');
     exit;
 }
 
@@ -477,7 +482,7 @@ if (isset($_POST['save_site_settings'])) {
         $returnTab = 'settings';
     }
     if (!cms_verify_csrf_post()) {
-        header('Location: admin.php?tab=' . rawurlencode($returnTab) . '&err=csrf');
+        header('Location: viv-admin.php?tab=' . rawurlencode($returnTab) . '&err=csrf');
         exit;
     }
     $post = $_POST;
@@ -503,9 +508,9 @@ if (isset($_POST['save_site_settings'])) {
     }
     cms_save_site_settings($post);
     if ($headerLogoUploadFailed) {
-        header('Location: admin.php?tab=' . rawurlencode($returnTab) . '&err=header_logo_upload');
+        header('Location: viv-admin.php?tab=' . rawurlencode($returnTab) . '&err=header_logo_upload');
     } else {
-        header('Location: admin.php?tab=' . rawurlencode($returnTab) . '&settings_saved=1');
+        header('Location: viv-admin.php?tab=' . rawurlencode($returnTab) . '&settings_saved=1');
     }
     exit;
 }
@@ -513,7 +518,7 @@ if (isset($_POST['save_site_settings'])) {
 if (isset($_POST['save_contact_cta'])) {
     checkAdmin();
     if (!cms_verify_csrf_post()) {
-        header('Location: admin.php?tab=contact&err=csrf');
+        header('Location: viv-admin.php?tab=contact&err=csrf');
         exit;
     }
     $enCall = isset($_POST['cta_enable_call']) && $_POST['cta_enable_call'] === '1';
@@ -533,30 +538,30 @@ if (isset($_POST['save_contact_cta'])) {
             'cta_call_label'      => (string) ($_POST['cta_call_label'] ?? ''),
         ]
     );
-    header('Location: admin.php?tab=contact&contact_saved=1');
+    header('Location: viv-admin.php?tab=contact&contact_saved=1');
     exit;
 }
 
 if (isset($_POST['save_contact_form'])) {
     checkAdmin();
     if (!cms_verify_csrf_post()) {
-        header('Location: admin.php?tab=contact_form&err=csrf');
+        header('Location: viv-admin.php?tab=contact_form&err=csrf');
         exit;
     }
     $cfFieldsErr = '';
     cms_save_contact_form_settings($_POST, $cfFieldsErr);
     if ($cfFieldsErr === 'invalid') {
-        header('Location: admin.php?tab=contact_form&contact_form_saved=1&contact_form_fields_err=1');
+        header('Location: viv-admin.php?tab=contact_form&contact_form_saved=1&contact_form_fields_err=1');
         exit;
     }
-    header('Location: admin.php?tab=contact_form&contact_form_saved=1');
+    header('Location: viv-admin.php?tab=contact_form&contact_form_saved=1');
     exit;
 }
 
 if (isset($_POST['crm_manual_status'])) {
     checkAdmin();
     if (!cms_verify_csrf_post()) {
-        header('Location: admin.php?tab=crm&err=csrf');
+        header('Location: viv-admin.php?tab=crm&err=csrf');
         exit;
     }
     $sid = (string) ($_POST['crm_submission_id'] ?? '');
@@ -582,7 +587,7 @@ if (isset($_POST['crm_manual_status'])) {
     }
     $rdf = cms_crm_sanitize_date_ymd((string) ($_POST['crm_return_date_from'] ?? ''));
     $rdt = cms_crm_sanitize_date_ymd((string) ($_POST['crm_return_date_to'] ?? ''));
-    $q = 'admin.php?tab=crm&crm_filter=' . rawurlencode($rf) . '&crm_q=' . rawurlencode($rq)
+    $q = 'viv-admin.php?tab=crm&crm_filter=' . rawurlencode($rf) . '&crm_q=' . rawurlencode($rq)
         . '&crm_date=' . rawurlencode($rd)
         . '&crm_from=' . rawurlencode($rdf)
         . '&crm_to=' . rawurlencode($rdt);
@@ -598,28 +603,28 @@ if (isset($_POST['crm_manual_status'])) {
 if (isset($_POST['change_admin_password'])) {
     checkAdmin();
     if (!cms_verify_csrf_post()) {
-        header('Location: admin.php?tab=users&err=csrf');
+        header('Location: viv-admin.php?tab=users&err=csrf');
         exit;
     }
     $a = (string) ($_POST['new_admin_password'] ?? '');
     $policy = cms_admin_password_policy_error($a);
     if ($policy !== null) {
-        header('Location: admin.php?tab=users&pwd_err=' . rawurlencode($policy));
+        header('Location: viv-admin.php?tab=users&pwd_err=' . rawurlencode($policy));
         exit;
     }
     cms_set_admin_password($a);
-    header('Location: admin.php?tab=users&pwd_ok=1');
+    header('Location: viv-admin.php?tab=users&pwd_ok=1');
     exit;
 }
 
 if (isset($_POST['force_patch_release'])) {
     checkAdmin();
     if (!cms_verify_csrf_post()) {
-        header('Location: admin.php?tab=config&err=csrf');
+        header('Location: viv-admin.php?tab=config&err=csrf');
         exit;
     }
     bumpVersion('patch', 'Manual patch from admin');
-    header('Location: admin.php?tab=config&patched=1');
+    header('Location: viv-admin.php?tab=config&patched=1');
     exit;
 }
 
@@ -652,7 +657,7 @@ if (!function_exists('cms_allocate_unique_page_slug')) {
 if (isset($_POST['create_page'])) {
     cms_require_pages_write();
     if (!cms_verify_csrf_post()) {
-        header('Location: admin.php?err=csrf');
+        header('Location: viv-admin.php?err=csrf');
         exit;
     }
     $currentSlug = cms_sanitize_slug($_POST['current_slug'] ?? '');
@@ -665,13 +670,13 @@ if (isset($_POST['create_page'])) {
         }
         if ($newSlug !== $currentSlug) {
             if (file_exists($pagesDir . $newSlug . '.json')) {
-                header('Location: admin.php?edit=' . rawurlencode($currentSlug) . '&err=slug_exists');
+                header('Location: viv-admin.php?edit=' . rawurlencode($currentSlug) . '&err=slug_exists');
                 exit;
             }
             $oldPath = $pagesDir . $currentSlug . '.json';
             if (file_exists($oldPath)) {
                 if (!rename($oldPath, $pagesDir . $newSlug . '.json')) {
-                    header('Location: admin.php?edit=' . rawurlencode($currentSlug) . '&err=slug_rename');
+                    header('Location: viv-admin.php?edit=' . rawurlencode($currentSlug) . '&err=slug_rename');
                     exit;
                 }
             }
@@ -681,7 +686,7 @@ if (isset($_POST['create_page'])) {
             $newSlug = cms_sanitize_slug($title);
         }
         if ($newSlug === '') {
-            header('Location: admin.php?err=slug_empty');
+            header('Location: viv-admin.php?err=slug_empty');
             exit;
         }
         if (is_file($pagesDir . $newSlug . '.json')) {
@@ -718,7 +723,7 @@ if (isset($_POST['create_page'])) {
     cms_persist_page_record($pageData);
     bumpVersion('patch', "Update Design: $slug");
 
-    header('Location: admin.php?edit=' . rawurlencode($slug) . '&saved=1');
+    header('Location: viv-admin.php?edit=' . rawurlencode($slug) . '&saved=1');
     exit;
 }
 
@@ -726,96 +731,88 @@ if (isset($_POST['create_page'])) {
 if (isset($_POST['add_user'])) {
     checkAdmin();
     if (!cms_verify_csrf_post()) {
-        header('Location: admin.php?tab=users&err=csrf');
+        header('Location: viv-admin.php?tab=users&err=csrf');
         exit;
     }
-    $u = trim((string) ($_POST['username'] ?? ''));
-    $u = preg_replace('/[^a-zA-Z0-9._-]+/', '', $u);
+    $u = preg_replace('/[^a-zA-Z0-9._@-]+/', '', trim((string) ($_POST['username'] ?? '')));
     if ($u !== '') {
+        $path = __DIR__ . '/users_data/' . $u . '.json';
+        if (is_file($path)) {
+            header('Location: viv-admin.php?tab=users&err=user_exists');
+            exit;
+        }
         $role = cms_normalize_user_role($_POST['role'] ?? 'Normal User');
         $menuPost = isset($_POST['menu_allow']) && is_array($_POST['menu_allow']) ? $_POST['menu_allow'] : [];
-        $emailRaw = trim((string) ($_POST['user_email'] ?? ''));
-        if ($emailRaw !== '' && cms_sanitize_user_email($emailRaw) === '') {
-            header('Location: admin.php?tab=users&err=email_invalid');
-            exit;
-        }
-        $emailClean = cms_sanitize_user_email($emailRaw);
-        if ($emailClean !== '' && cms_user_email_taken($emailClean, $u)) {
-            header('Location: admin.php?tab=users&err=email_taken');
-            exit;
-        }
-        createUser($u, $role, cms_sanitize_menu_allow($menuPost), $emailClean);
-        header('Location: admin.php?tab=users&user=' . rawurlencode($u));
+        createUser($u, $role, cms_sanitize_menu_allow($menuPost));
+        header('Location: viv-admin.php?tab=users&user=' . rawurlencode($u) . '&user_created=1');
         exit;
     }
-    header('Location: admin.php?tab=users');
+    header('Location: viv-admin.php?tab=users');
     exit;
 }
 
 if (isset($_POST['update_user_role'])) {
     checkAdmin();
     if (!cms_verify_csrf_post()) {
-        header('Location: admin.php?tab=users&err=csrf');
+        header('Location: viv-admin.php?tab=users&err=csrf');
         exit;
     }
-    $uname = preg_replace('/[^a-zA-Z0-9._-]+/', '', (string) ($_POST['edit_username'] ?? ''));
+    $uname = preg_replace('/[^a-zA-Z0-9._@-]+/', '', (string) ($_POST['edit_username'] ?? ''));
+    $newUname = preg_replace('/[^a-zA-Z0-9._@-]+/', '', (string) ($_POST['username'] ?? ''));
     $newRole = cms_normalize_user_role($_POST['role'] ?? '');
     global $usersDir;
     $path = $usersDir . $uname . '.json';
     if ($uname === '' || !is_file($path)) {
-        header('Location: admin.php?tab=users');
+        header('Location: viv-admin.php?tab=users');
+        exit;
+    }
+    if ($newUname === '') {
+        header('Location: viv-admin.php?tab=users&user=' . urlencode($uname) . '&err=email_invalid');
+        exit;
+    }
+    if ($uname !== $newUname && is_file($usersDir . $newUname . '.json')) {
+        header('Location: viv-admin.php?tab=users&user=' . urlencode($uname) . '&err=email_taken');
         exit;
     }
     $current = json_decode((string) file_get_contents($path), true);
     if (!is_array($current)) {
-        header('Location: admin.php?tab=users');
+        header('Location: viv-admin.php?tab=users');
         exit;
     }
     $wasAdmin = cms_user_role_is_administrator($current['role'] ?? '');
     if ($wasAdmin && $newRole !== 'Administrator' && cms_count_administrators() <= 1) {
-        header('Location: admin.php?tab=users&user=' . rawurlencode($uname) . '&err=last_admin');
+        header('Location: viv-admin.php?tab=users&user=' . rawurlencode($uname) . '&err=last_admin');
         exit;
     }
     $menuPost = isset($_POST['menu_allow']) && is_array($_POST['menu_allow']) ? $_POST['menu_allow'] : [];
-    $emailRaw = trim((string) ($_POST['user_email'] ?? ''));
-    if ($emailRaw !== '' && cms_sanitize_user_email($emailRaw) === '') {
-        header('Location: admin.php?tab=users&user=' . rawurlencode($uname) . '&err=email_invalid');
-        exit;
-    }
-    $emailClean = cms_sanitize_user_email($emailRaw);
-    if ($emailClean !== '' && cms_user_email_taken($emailClean, $uname)) {
-        header('Location: admin.php?tab=users&user=' . rawurlencode($uname) . '&err=email_taken');
-        exit;
-    }
-    cms_update_user_menu_allow($uname, $newRole, $menuPost, $emailClean);
-    header('Location: admin.php?tab=users&user=' . rawurlencode($uname) . '&user_updated=1');
+    cms_update_user_v2($uname, $newUname, $newRole, $menuPost);
+    header('Location: viv-admin.php?tab=users&user=' . rawurlencode($newUname) . '&user_updated=1');
     exit;
 }
 
 if (isset($_POST['delete_user'])) {
     checkAdmin();
     if (!cms_verify_csrf_post()) {
-        header('Location: admin.php?tab=users&err=csrf');
+        header('Location: viv-admin.php?tab=users&err=csrf');
         exit;
     }
-    $uname = preg_replace('/[^a-zA-Z0-9._-]+/', '', (string) ($_POST['delete_username'] ?? ''));
-    if (strtolower($uname) === 'admin') {
-        header('Location: admin.php?tab=users&err=cannot_delete_admin');
+    $euname = preg_replace('/[^a-zA-Z0-9._@-]+/', '', (string) ($_POST['delete_username'] ?? ''));
+    if ($euname === '') {
+        header('Location: viv-admin.php?tab=users');
         exit;
     }
-    global $usersDir;
-    $path = $usersDir . $uname . '.json';
-    if (!is_file($path)) {
-        header('Location: admin.php?tab=users');
+    // Prevent deleting primary admin or self
+    $isPrimary = (strtolower($euname) === 'admin' || strtolower($euname) === 'matmovie01@gmail.com');
+    $isSelf = (isset($_SESSION['cms_username']) && $_SESSION['cms_username'] === $euname);
+    
+    if (!$isPrimary && !$isSelf) {
+        global $usersDir;
+        $path = $usersDir . $euname . '.json';
+        if (is_file($path)) unlink($path);
+        header('Location: viv-admin.php?tab=users&deleted=1');
         exit;
     }
-    $current = json_decode((string) file_get_contents($path), true);
-    if (is_array($current) && cms_user_role_is_administrator($current['role'] ?? '') && cms_count_administrators() <= 1) {
-        header('Location: admin.php?tab=users&err=last_admin');
-        exit;
-    }
-    cms_delete_user_file($uname);
-    header('Location: admin.php?tab=users&user_deleted=1');
+    header('Location: viv-admin.php?tab=users&err=protected');
     exit;
 }
 
@@ -918,6 +915,10 @@ function getTrashedCMSPages() {
 
 function getCMSPage($slug) {
     global $pagesDir;
+    $slug = cms_sanitize_slug((string) $slug);
+    if ($slug === '') {
+        return null;
+    }
     $file = $pagesDir . $slug . '.json';
     if (file_exists($file)) {
         return json_decode(file_get_contents($file), true);
@@ -949,12 +950,12 @@ function cms_sanitize_menu_allow($raw) {
 
 /** Default sidebar items for Normal User when menu_allow is missing or empty. */
 function cms_default_menu_allow_normal() {
-    return ['pages', 'trash', 'media'];
+    return ['html_tags', 'contact', 'crm'];
 }
 
 function cms_session_username() {
     $u = $_SESSION['cms_username'] ?? '';
-    return is_string($u) ? preg_replace('/[^a-zA-Z0-9._-]+/', '', $u) : '';
+    return is_string($u) ? preg_replace('/[^a-zA-Z0-9._@-]+/', '', $u) : '';
 }
 
 /** Logged-in CMS user row from users_data, or null (legacy session without username). */
@@ -1020,7 +1021,7 @@ function cms_count_administrators() {
 
 function cms_update_user_role($username, $role) {
     global $usersDir;
-    $username = preg_replace('/[^a-zA-Z0-9._-]+/', '', (string) $username);
+    $username = preg_replace('/[^a-zA-Z0-9._@-]+/', '', (string) $username);
     if ($username === '') {
         return false;
     }
@@ -1041,17 +1042,18 @@ function cms_update_user_role($username, $role) {
 /**
  * Persist menu_allow for non-administrators; administrators get key removed (full access implied).
  */
-function cms_update_user_menu_allow($username, $role, array $menuPost, string $emailClean = '') {
+function cms_update_user_v2($oldUsername, $newUsername, $role, array $menuPost) {
     global $usersDir;
-    $username = preg_replace('/[^a-zA-Z0-9._-]+/', '', (string) $username);
-    if ($username === '') {
+    $oldUsername = preg_replace('/[^a-zA-Z0-9._@-]+/', '', (string) $oldUsername);
+    $newUsername = preg_replace('/[^a-zA-Z0-9._@-]+/', '', (string) $newUsername);
+    if ($oldUsername === '' || $newUsername === '') {
         return false;
     }
-    $path = $usersDir . $username . '.json';
-    if (!is_file($path)) {
+    $oldPath = $usersDir . $oldUsername . '.json';
+    if (!is_file($oldPath)) {
         return false;
     }
-    $data = json_decode((string) file_get_contents($path), true);
+    $data = json_decode((string) file_get_contents($oldPath), true);
     if (!is_array($data)) {
         return false;
     }
@@ -1062,20 +1064,22 @@ function cms_update_user_menu_allow($username, $role, array $menuPost, string $e
         $san = cms_sanitize_menu_allow($menuPost);
         $data['menu_allow'] = $san !== [] ? $san : cms_default_menu_allow_normal();
     }
-    if ($emailClean === '') {
-        unset($data['email']);
-    } else {
-        $data['email'] = $emailClean;
-    }
-    $data['username'] = $username;
+    $data['username'] = $newUsername;
+    $data['email']    = $newUsername;
     $data['role']     = $norm;
-    file_put_contents($path, json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+    if ($oldUsername !== $newUsername) {
+        unlink($oldPath);
+        if (isset($_SESSION['cms_username']) && $_SESSION['cms_username'] === $oldUsername) {
+            $_SESSION['cms_username'] = $newUsername;
+        }
+    }
+    file_put_contents($usersDir . $newUsername . '.json', json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
     return true;
 }
 
 function cms_delete_user_file($username) {
     global $usersDir;
-    $username = preg_replace('/[^a-zA-Z0-9._-]+/', '', (string) $username);
+    $username = preg_replace('/[^a-zA-Z0-9._@-]+/', '', (string) $username);
     if ($username === '' || strtolower($username) === 'admin') {
         return false;
     }
@@ -1087,17 +1091,15 @@ function cms_delete_user_file($username) {
     return false;
 }
 
-function createUser($username, $role, array $menuAllowPost = [], string $emailClean = '') {
+function createUser($username, $role, array $menuAllowPost = []) {
     global $usersDir;
     $norm = cms_normalize_user_role($role);
     $userData = [
         'username' => $username,
+        'email'    => $username, // Username is the email
         'role'     => $norm,
         'created'  => date('Y-m-d'),
     ];
-    if ($emailClean !== '') {
-        $userData['email'] = $emailClean;
-    }
     if (!cms_user_role_is_administrator($norm)) {
         $san = cms_sanitize_menu_allow($menuAllowPost);
         $userData['menu_allow'] = $san !== [] ? $san : cms_default_menu_allow_normal();
@@ -1107,12 +1109,15 @@ function createUser($username, $role, array $menuAllowPost = [], string $emailCl
 
 function getAllUsers() {
     global $usersDir;
+    clearstatcache();
     $users = [];
     $files = glob($usersDir . '*.json');
-    foreach ($files as $file) {
-        $row = json_decode((string) file_get_contents($file), true);
-        if (is_array($row) && isset($row['username'])) {
-            $users[] = $row;
+    if (is_array($files)) {
+        foreach ($files as $file) {
+            $row = json_decode((string) file_get_contents($file), true);
+            if (is_array($row) && isset($row['username'])) {
+                $users[] = $row;
+            }
         }
     }
     return $users;
@@ -1120,7 +1125,7 @@ function getAllUsers() {
 
 function cms_get_user($username) {
     global $usersDir;
-    $username = preg_replace('/[^a-zA-Z0-9._-]+/', '', (string) $username);
+    $username = preg_replace('/[^a-zA-Z0-9._@-]+/', '', (string) $username);
     if ($username === '') {
         return null;
     }
@@ -1181,7 +1186,7 @@ function cms_find_user_for_login(string $identifier): ?array {
         }
         return null;
     }
-    $u = preg_replace('/[^a-zA-Z0-9._-]+/', '', $identifier);
+    $u = preg_replace('/[^a-zA-Z0-9._@-]+/', '', $identifier);
     if ($u === '') {
         return null;
     }

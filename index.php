@@ -79,7 +79,7 @@ $homeBodyTpl = cms_page_template_body_classes($homeTpl);
                 <h2 style="color: #4facfe; margin-bottom: 15px;">Default design page not found</h2>
                 <p style="color: #475569; font-size: 16px;">Please select your dynamic design from the Admin Panel and mark it as 'Home'.</p>
                 <div style="margin-top:25px;">
-                    <a href="admin.php" style="background: #4facfe; color: black; padding: 12px 25px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size:14px;">Open Admin Panel</a>
+                    <a href="viv-admin.php" style="background: #4facfe; color: black; padding: 12px 25px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size:14px;">Open Admin Panel</a>
                 </div>
             </div>
         </main>

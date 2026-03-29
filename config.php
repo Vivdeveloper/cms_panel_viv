@@ -134,6 +134,7 @@ function getSiteSettings() {
         'smtp_pass'            => '',
         'smtp_from_email'      => '',
         'smtp_from_name'       => '',
+        'favicon_bg_color'     => '',
     ];
     $path = CMS_DATA_DIR . 'site_settings.json';
     if (!is_file($path)) {
@@ -323,6 +324,7 @@ function cms_save_site_settings(array $input) {
         'inject_body_open_html', 'inject_footer_html',
         'maintenance_mode',
         'header_logo_url',
+        'favicon_bg_color',
     ];
     $current = getSiteSettings();
     $out = [];
@@ -339,6 +341,8 @@ function cms_save_site_settings(array $input) {
             $out[$key] = cms_normalize_maintenance_bool($v);
         } elseif ($key === 'header_logo_url') {
             $out[$key] = cms_sanitize_header_logo_url($input[$key] ?? '');
+        } elseif ($key === 'favicon_bg_color') {
+            $out[$key] = cms_sanitize_hex_color($input[$key] ?? '', '');
         } else {
             $out[$key] = is_string($input[$key]) ? $input[$key] : (string) $input[$key];
         }
@@ -494,7 +498,7 @@ function cms_is_maintenance_mode() {
 function cms_is_admin_area_request() {
     $script = basename((string) ($_SERVER['SCRIPT_FILENAME'] ?? $_SERVER['SCRIPT_NAME'] ?? ''));
     static $adminScripts = [
-        'admin.php',
+        'viv-admin.php',
         'media_manager.php',
         'backup.php',
         'download_page.php',
@@ -539,6 +543,7 @@ function cms_send_404($message = 'Page not found') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>404 — <?php echo cms_escape($brand); ?></title>
     <link rel="stylesheet" href="<?php echo cms_escape(cms_url('public_style.css')); ?>">
+    <link rel="icon" type="image/svg+xml" href="<?php echo cms_generate_text_favicon_svg($brand); ?>">
 </head>
 <body style="background:#eef2f7;color:#0f172a;font-family:system-ui,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;margin:0;">
     <main style="text-align:center;padding:2rem;max-width:28rem;">
@@ -580,6 +585,7 @@ function cms_render_seo_head(array $opts) {
     <?php if ($ogImage !== ''): ?>
     <meta name="twitter:image" content="<?php echo cms_escape($ogImage); ?>">
     <?php endif; ?>
+    <link rel="icon" type="image/svg+xml" href="<?php echo cms_generate_text_favicon_svg($brand); ?>">
     <?php
     $siteUrl = rtrim(cms_site_url(), '/');
     $siteId  = $siteUrl . '/#website';
@@ -616,6 +622,37 @@ function cms_echo_site_html_snippet(string $settingKey) {
     if ($h !== '') {
         echo $h . "\n";
     }
+}
+
+/**
+ * Generate a dynamic SVG favicon based on the site name's first character.
+ */
+function cms_generate_text_favicon_svg($text) {
+    $brand = trim((string)$text);
+    if ($brand === '') {
+        $brand = 'C';
+    }
+    $char = mb_substr($brand, 0, 1, 'UTF-8');
+    if (function_exists('mb_strtoupper')) {
+        $char = mb_strtoupper($char, 'UTF-8');
+    } else {
+        $char = strtoupper($char);
+    }
+    
+    // Priority: 1. Manual favicon color, 2. CTA call color, 3. Default blue
+    $settings = getSiteSettings();
+    $color = trim((string)($settings['favicon_bg_color'] ?? ''));
+    if ($color === '') {
+        $color = cms_sanitize_hex_color($settings['cta_call_color'] ?? '', '#4facfe');
+    }
+    
+    $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">' .
+           '<rect width="100" height="100" rx="20" fill="' . $color . '" />' .
+           '<text x="50%" y="55%" dominant-baseline="central" text-anchor="middle" ' .
+           'fill="#ffffff" font-family="system-ui, sans-serif" font-weight="900" font-size="72">' .
+           $char . '</text></svg>';
+           
+    return 'data:image/svg+xml;base64,' . base64_encode($svg);
 }
 
 function getHeader($title) {
@@ -814,7 +851,7 @@ function getPanel() {
                     <span style="font-size:12px; color:#0f172a;"><?php echo cms_escape($p['slug']); ?></span>
                     <div>
                         <a href="<?php echo cms_escape(cms_page_url($p['slug'])); ?>" style="color:#00f2fe; font-size:11px; text-decoration:none; margin-right:10px;">View</a>
-                        <a href="admin.php?edit=<?php echo cms_escape($p['slug']); ?>" style="color:#4facfe; font-size:11px; text-decoration:none;">Edit</a>
+                        <a href="viv-admin.php?edit=<?php echo cms_escape($p['slug']); ?>" style="color:#4facfe; font-size:11px; text-decoration:none;">Edit</a>
                     </div>
                 </div>
                 <?php endforeach; ?>
@@ -822,7 +859,7 @@ function getPanel() {
         </div>
 
         <div style="margin-top: 25px; border-top: 1px solid rgba(15,23,42,0.08); padding-top: 15px; text-align: center;">
-            <a href="admin.php" style="color: #00f2fe; font-size: 14px; text-decoration: none; font-weight: 700;">✨ Professional Admin Dashboard</a>
+            <a href="viv-admin.php" style="color: #00f2fe; font-size: 14px; text-decoration: none; font-weight: 700;">✨ Professional Admin Dashboard</a>
         </div>
         <div style="margin-top: 10px; text-align: center;">
             <a href="panel.php" style="color: #4facfe; font-size: 13px; text-decoration: none; font-weight: 500;">Full-Screen Private Dashboard →</a>

@@ -2,7 +2,7 @@
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/cms_core.php';
 if (!isset($_SESSION['is_admin']) || $_SESSION['is_admin'] !== true) {
-    header('Location: admin.php');
+    header('Location: viv-admin.php');
     exit;
 }
 ?>
@@ -13,6 +13,7 @@ if (!isset($_SESSION['is_admin']) || $_SESSION['is_admin'] !== true) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - <?php echo htmlspecialchars(cms_brand()); ?></title>
     <link rel="stylesheet" href="<?php echo cms_url('public_style.css'); ?>">
+    <link rel="icon" type="image/svg+xml" href="<?php echo cms_generate_text_favicon_svg(cms_brand()); ?>">
     <style>
         .admin-grid {
             margin-top: 30px;
@@ -63,7 +64,7 @@ if (!isset($_SESSION['is_admin']) || $_SESSION['is_admin'] !== true) {
         <p class="subtitle">Quick access to all your CMS pages and system settings.</p>
 
         <div style="margin-top: 50px; text-align: center;">
-            <a href="admin.php" class="panel-btn" style="display: inline-block; text-decoration: none;">Open Page Editor</a>
+            <a href="viv-admin.php" class="panel-btn" style="display: inline-block; text-decoration: none;">Open Page Editor</a>
         </div>
         
         <p style="margin-top: 60px; color: #555; font-size: 14px; text-align: center;">Hint: Use your secret code to open the quick-navigation panel from anywhere on the site.</p>

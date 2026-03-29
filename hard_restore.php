@@ -180,7 +180,7 @@ a.back:hover{color:#fff}
 <?php endif; ?>
 
 <?php if ($ok): ?>
-    <a href="admin.php" style="display:block;text-align:center;padding:12px;background:#fff;color:#000;font-weight:700;font-size:13px;text-decoration:none;">Open Admin Panel</a>
+    <a href="viv-admin.php" style="display:block;text-align:center;padding:12px;background:#fff;color:#000;font-weight:700;font-size:13px;text-decoration:none;">Open Admin Panel</a>
 
 <?php elseif ($locked): ?>
     <div class="shield">
@@ -215,7 +215,7 @@ a.back:hover{color:#fff}
 <?php endif; ?>
 
     <p class="warn"><strong>Keep this file safe.</strong> It works even when the entire CMS is broken.</p>
-    <a class="back" href="admin.php">Back to admin</a>
+    <a class="back" href="viv-admin.php">Back to admin</a>
 </div>
 </div>
 </body>

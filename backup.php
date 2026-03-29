@@ -4,13 +4,13 @@ require_once __DIR__ . '/cms_core.php';
 require_once __DIR__ . '/admin_menu.php';
 
 if (!isset($_SESSION['is_admin']) || $_SESSION['is_admin'] !== true) {
-    header("Location: admin.php");
+    header("Location: viv-admin.php");
     exit;
 }
 $menuUserRecord = cms_current_user_record();
 $allowedMenuKeys = cms_user_allowed_menu_keys($menuUserRecord);
 if (!cms_user_may_access_menu_key($menuUserRecord, 'backup')) {
-    header('Location: admin.php?tab=' . rawurlencode($allowedMenuKeys[0] ?? 'pages'));
+    header('Location: viv-admin.php?tab=' . rawurlencode($allowedMenuKeys[0] ?? 'pages'));
     exit;
 }
 
@@ -361,6 +361,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['import_zip']) && is_
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap">
     <link rel="stylesheet" href="<?php echo cms_url('admin_style.css'); ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="icon" type="image/svg+xml" href="<?php echo cms_generate_text_favicon_svg(cms_brand()); ?>">
 </head>
 <body class="wp-admin-skin<?php echo cms_is_maintenance_mode() ? ' admin-public-maintenance' : ''; ?>">
     <div class="wp-admin-shell">
