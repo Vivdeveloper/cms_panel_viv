@@ -13,8 +13,7 @@ require_once __DIR__ . '/config.php';
 $pagesDir = __DIR__ . '/pages_data/';
 $trashDir = $pagesDir . 'trash/';
 $usersDir = __DIR__ . '/users_data/';
-$versionFile = $pagesDir . 'system_version.json';
-$historyFile = $pagesDir . 'release_history.json';
+
 
 if (!is_dir($pagesDir)) {
     mkdir($pagesDir, 0755, true);
@@ -140,8 +139,6 @@ function cms_is_admin_preview() {
 
 function cms_skip_page_json($basename) {
     static $skip = [
-        'system_version.json',
-        'release_history.json',
         'site_settings.json',
         'admin_secrets.json',
         'contact_submissions.json',
@@ -310,44 +307,7 @@ function cms_require_pages_write(): void {
 }
 
 // --- VERSION MANAGEMENT ---
-function getSystemVersion() {
-    global $versionFile;
-    if (!file_exists($versionFile)) {
-        file_put_contents($versionFile, json_encode(['ver' => '1.0.0', 'last_release' => 'N/A']));
-    }
-    return json_decode(file_get_contents($versionFile), true);
-}
 
-function bumpVersion($type = 'patch', $status = 'System Update') {
-    global $versionFile, $historyFile;
-    $vData = getSystemVersion();
-    $oldVer = $vData['ver'];
-    $vParts = explode('.', $vData['ver']);
-
-    if ($type === 'patch') {
-        $vParts[2]++;
-    } elseif ($type === 'minor') {
-        $vParts[1]++;
-        $vParts[2] = 0;
-    }
-
-    $vData['ver'] = implode('.', $vParts);
-    $vData['last_release'] = date('Y-m-d H:i:s');
-
-    $history = file_exists($historyFile) ? json_decode(file_get_contents($historyFile), true) : [];
-    if (!is_array($history)) {
-        $history = [];
-    }
-    array_unshift($history, [
-        'from'       => $oldVer,
-        'to'         => $vData['ver'],
-        'time'       => $vData['last_release'],
-        'git_status' => $status,
-    ]);
-    file_put_contents($historyFile, json_encode(array_slice($history, 0, 10)));
-    file_put_contents($versionFile, json_encode($vData));
-    return $vData;
-}
 
 /** Basename only; must be a JSON file inside trash (no path segments). */
 function cms_is_safe_trash_basename($name) {
@@ -409,7 +369,6 @@ if (isset($_POST['post_toggle_menu'])) {
     $d['allow_in_menu'] = !cms_page_show_in_public_menu($d);
     $d['updated'] = date('Y-m-d H:i:s');
     file_put_contents($path, json_encode($d, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
-    bumpVersion('patch', 'Toggle menu: ' . $slug);
     header('Location: viv-admin.php');
     exit;
 }
@@ -690,16 +649,7 @@ if (isset($_POST['change_admin_password'])) {
     exit;
 }
 
-if (isset($_POST['force_patch_release'])) {
-    checkAdmin();
-    if (!cms_verify_csrf_post()) {
-        header('Location: viv-admin.php?tab=config&err=csrf');
-        exit;
-    }
-    bumpVersion('patch', 'Manual patch from admin');
     header('Location: viv-admin.php?tab=config&patched=1');
-    exit;
-}
 
 /**
  * If pages_data/{slug}.json already exists, append -2, -3, … (WordPress-style) until unused.
@@ -794,7 +744,6 @@ if (isset($_POST['create_page'])) {
     ];
 
     cms_persist_page_record($pageData);
-    bumpVersion('patch', "Update Design: $slug");
 
     header('Location: viv-admin.php?edit=' . rawurlencode($slug) . '&saved=1');
     exit;

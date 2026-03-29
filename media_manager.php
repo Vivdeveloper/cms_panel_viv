@@ -240,7 +240,6 @@ function scanUploads(string $dir): array
 }
 
 $items = scanUploads($uploadDir);
-$sysVer = getSystemVersion();
 ?>
 <!DOCTYPE html>
 <html lang="en">

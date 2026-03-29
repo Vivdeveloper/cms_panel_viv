@@ -14,7 +14,7 @@ if (!cms_user_may_access_menu_key($menuUserRecord, 'backup')) {
     exit;
 }
 
-$sysVer   = getSystemVersion();
+
 $cmsRoot  = realpath(__DIR__);
 $msg      = '';
 $msgType  = '';
@@ -150,10 +150,6 @@ function backup_import_pages_from_xml_string(string $xml): array {
         }
         cms_persist_page_record($norm);
         $imported++;
-    }
-
-    if ($imported > 0) {
-        bumpVersion('patch', 'Import pages from XML');
     }
 
     return ['ok' => $imported, 'err' => null, 'skipped' => $skipped];

@@ -130,7 +130,7 @@ if (!isset($_SESSION['is_admin']) || $_SESSION['is_admin'] !== true) {
     <?php exit;
 }
 
-$sysVer = getSystemVersion();
+
 $allPages = getAllCMSPages();
 $trashedPages = getTrashedCMSPages();
 $editData = null;
@@ -256,7 +256,7 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                     'crm_updated' => 'Lead status saved.',
                     'crm_deleted' => 'Lead deleted.',
                     'pwd_ok'          => 'Admin password updated.',
-                    'patched'         => 'Version bumped (patch).',
+
                     'user_updated'    => 'User saved (role, email, menu access).',
                     'user_deleted'    => 'User removed.',
                     'user_created'    => 'User created successfully.',
@@ -981,24 +981,7 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                 <div id="config-panel" class="wp-panel wp-panel-wide <?php echo $mainTab === 'config' ? 'active' : ''; ?>">
                     <h1 class="wp-heading-inline">Server configuration</h1>
                     <hr class="wp-header-end">
-                    <div class="postbox">
-                        <h2 class="postbox-header">System info</h2>
-                        <div class="postbox-inner" style="font-family:var(--m); font-size:12px; line-height:2; color:var(--ink3); word-break:break-all;">
-                        [CORE] INSTANCE_VER: v<?php echo htmlspecialchars($sysVer['ver']); ?><br>
-                        [CORE] DATA_PATH: <?php echo htmlspecialchars(__DIR__); ?>/pages_data/<br>
-                        [CORE] UPLOAD_PATH: <?php echo htmlspecialchars(__DIR__); ?>/uploads/<br>
-                        [SEO] SITEMAP: <?php echo htmlspecialchars(cms_url('sitemap.php')); ?><br>
-                        [SEO] ROBOTS: <?php echo htmlspecialchars(cms_url('robots.php')); ?><br>
-                        [SECURITY] CSRF + hashed admin password<br>
-                        </div>
-                    </div>
-                    <div class="notice notice-error" style="margin-top:8px;">
-                        <p style="margin:0 0 10px;"><strong>Maintenance:</strong> force version patch</p>
-                        <form method="post" style="display:inline;">
-                            <input type="hidden" name="cms_csrf" value="<?php echo htmlspecialchars($csrf); ?>">
-                            <button type="submit" name="force_patch_release" class="button button-danger" onclick="return confirm('Bump patch version in system_version.json?');">Force patch release</button>
-                        </form>
-                        <p class="description" style="margin-top:10px; margin-bottom:0;">Use only when local mirror version mismatches production.</p>
+                        <p style="margin:0;">No maintenance tasks currently required.</p>
                     </div>
                 </div>
 
