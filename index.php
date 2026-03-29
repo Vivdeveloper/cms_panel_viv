@@ -75,11 +75,11 @@ $homeBodyTpl = cms_page_template_body_classes($homeTpl);
         </main>
     <?php else: ?>
         <main class="section" style="text-align:center; padding-top:100px;">
-            <div style="background:#fff; border:1px dashed rgba(15,23,42,0.15); padding: 50px; border-radius: 20px; max-width: 600px; margin: 0 auto; box-shadow:0 8px 30px rgba(15,23,42,0.06);">
+            <div style="background:#fff; border:1px dashed rgba(15,23,42,0.15); padding: 50px; border-radius: 0; max-width: 600px; margin: 0 auto; box-shadow:0 8px 30px rgba(15,23,42,0.06);">
                 <h2 style="color: #4facfe; margin-bottom: 15px;">Default design page not found</h2>
                 <p style="color: #475569; font-size: 16px;">Please select your dynamic design from the Admin Panel and mark it as 'Home'.</p>
                 <div style="margin-top:25px;">
-                    <a href="viv-admin.php" style="background: #4facfe; color: black; padding: 12px 25px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size:14px;">Open Admin Panel</a>
+                    <a href="viv-admin.php" style="background: #4facfe; color: black; padding: 12px 25px; border-radius: 0; text-decoration: none; font-weight: 700; font-size:14px;">Open Admin Panel</a>
                 </div>
             </div>
         </main>

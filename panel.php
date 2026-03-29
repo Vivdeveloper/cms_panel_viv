@@ -26,7 +26,7 @@ if (!isset($_SESSION['is_admin']) || $_SESSION['is_admin'] !== true) {
             background: #fff;
             border: 1px solid rgba(15, 23, 42, 0.1);
             padding: 25px;
-            border-radius: 15px;
+            border-radius: 0;
             text-align: left;
             box-shadow: 0 8px 30px rgba(15, 23, 42, 0.06);
         }
@@ -41,7 +41,7 @@ if (!isset($_SESSION['is_admin']) || $_SESSION['is_admin'] !== true) {
             color: #0f172a;
             padding: 10px;
             width: 100%;
-            border-radius: 8px;
+            border-radius: 0;
             margin-bottom: 15px;
         }
         .status-badge {
@@ -49,7 +49,7 @@ if (!isset($_SESSION['is_admin']) || $_SESSION['is_admin'] !== true) {
             padding: 4px 10px;
             background: rgba(0, 242, 254, 0.1);
             color: #00f2fe;
-            border-radius: 5px;
+            border-radius: 0;
             font-size: 12px;
             margin-bottom: 10px;
         }

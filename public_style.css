@@ -83,7 +83,7 @@ html {
     max-width: min(56px, 20vw);
     object-fit: contain;
     object-position: center;
-    border-radius: 10px;
+    border-radius:0;
     flex-shrink: 0;
     background: rgba(15, 23, 42, 0.06);
 }
@@ -148,7 +148,7 @@ html {
     margin-left: auto;
     background: rgba(15, 23, 42, 0.06);
     border: 1px solid var(--glass-border);
-    border-radius: 10px;
+    border-radius:0;
     cursor: pointer;
     color: var(--body-text);
     flex-shrink: 0;
@@ -159,7 +159,7 @@ html {
     height: 2px;
     width: 100%;
     background: currentColor;
-    border-radius: 1px;
+    border-radius:0;
     transition: transform 0.2s ease, opacity 0.2s ease;
 }
 
@@ -280,7 +280,7 @@ body.nav-drawer-open .nav-menu-toggle .nav-menu-bar:nth-child(3) {
     max-width: 44px;
     object-fit: contain;
     object-position: center;
-    border-radius: 8px;
+    border-radius:0;
     flex-shrink: 0;
     background: rgba(15, 23, 42, 0.06);
 }
@@ -320,7 +320,7 @@ body.nav-drawer-open .nav-menu-toggle .nav-menu-bar:nth-child(3) {
     width: 40px;
     height: 40px;
     border: none;
-    border-radius: 10px;
+    border-radius:0;
     background: rgba(15, 23, 42, 0.06);
     color: var(--body-text);
     font-size: 24px;
@@ -439,7 +439,7 @@ p.subtitle {
     border: 1px solid var(--glass-border);
     backdrop-filter: blur(10px);
     padding: 40px;
-    border-radius: 20px;
+    border-radius:0;
     transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
     text-align: left;
 }
@@ -461,7 +461,7 @@ p.subtitle {
     background: rgba(255, 255, 255, 0.97);
     backdrop-filter: blur(20px);
     border: 1px solid var(--glass-border);
-    border-radius: 24px;
+    border-radius:0;
     padding: 40px;
     z-index: 1000;
     display: none;
@@ -482,7 +482,7 @@ p.subtitle {
     padding: 12px 16px;
     background: #fff;
     border: 1px solid rgba(15, 23, 42, 0.12);
-    border-radius: 12px;
+    border-radius:0;
     color: var(--body-text);
     margin-top: 10px;
     margin-bottom: 20px;
@@ -493,7 +493,7 @@ p.subtitle {
     padding: 14px;
     background: linear-gradient(45deg, var(--secondary), var(--primary));
     border: none;
-    border-radius: 12px;
+    border-radius:0;
     color: black;
     font-weight: 700;
     cursor: pointer;

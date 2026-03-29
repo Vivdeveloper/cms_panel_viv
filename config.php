@@ -549,7 +549,7 @@ function cms_send_404($message = 'Page not found') {
     <main style="text-align:center;padding:2rem;max-width:28rem;">
         <h1 style="font-size:1.5rem;margin:0 0 0.75rem;color:#4facfe;">404</h1>
         <p style="color:#64748b;margin:0 0 1.5rem;line-height:1.5;"><?php echo cms_escape($message); ?></p>
-        <a href="<?php echo cms_escape($home); ?>" style="display:inline-block;background:#4facfe;color:#050505;padding:10px 22px;border-radius:8px;text-decoration:none;font-weight:700;">Back to home</a>
+        <a href="<?php echo cms_escape($home); ?>" style="display:inline-block;background:#4facfe;color:#050505;padding:10px 22px;border-radius:0;text-decoration:none;font-weight:700;">Back to home</a>
     </main>
 </body>
 </html>
@@ -647,7 +647,7 @@ function cms_generate_text_favicon_svg($text) {
     }
     
     $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">' .
-           '<rect width="100" height="100" rx="20" fill="' . $color . '" />' .
+           '<rect width="100" height="100" rx="0" fill="' . $color . '" />' .
            '<text x="50%" y="55%" dominant-baseline="central" text-anchor="middle" ' .
            'fill="#ffffff" font-family="system-ui, sans-serif" font-weight="900" font-size="72">' .
            $char . '</text></svg>';
@@ -840,7 +840,7 @@ function getPanel() {
         
         <div style="margin-top: 10px;">
             <label style="display: block; color: #64748b; font-size: 14px; margin-bottom:10px;">All CMS Pages</label>
-            <div style="max-height: 350px; overflow-y: auto; background: rgba(15,23,42,0.04); border-radius: 8px; padding: 10px;">
+            <div style="max-height: 350px; overflow-y: auto; background: rgba(15,23,42,0.04); border-radius: 0; padding: 10px;">
                 <?php
                 if (!function_exists('getAllCMSPages')) {
                     require_once __DIR__ . '/cms_core.php';

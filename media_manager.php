@@ -247,7 +247,7 @@ $sysVer = getSystemVersion();
             background: rgba(255,255,255,0.9);
             border: 1px solid var(--rule);
             color: var(--mid);
-            border-radius: 4px;
+            border-radius: 0;
             cursor: pointer;
             font-size: 12px;
             transition: all 0.2s;
@@ -405,7 +405,7 @@ if (!empty($_GET['delete_err'])) {
                                             <?php foreach ($items as $it): ?>
                                             <li class="media-grid-item">
                                                 <div class="media-grid-item-inner">
-                                                    <label class="media-item-checkbox-wrapper" style="position:absolute;top:10px;left:10px;z-index:20;background:rgba(255,255,255,0.9);width:22px;height:22px;border-radius:4px;border:1px solid rgba(0,0,0,0.1);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+                                                    <label class="media-item-checkbox-wrapper" style="position:absolute;top:10px;left:10px;z-index:20;background:rgba(255,255,255,0.9);width:22px;height:22px;border-radius:0;border:1px solid rgba(0,0,0,0.1);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.1);">
                                                         <input type="checkbox" name="media_items[]" value="<?php echo htmlspecialchars($it['name']); ?>" class="media-bulk-checkbox" onchange="updateBulkActions()">
                                                     </label>
                                                     <a href="<?php echo htmlspecialchars($it['url']); ?>" target="_blank" rel="noopener" class="media-grid-card">

@@ -509,12 +509,12 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                             </div>
                             <div class="form-group">
                                 <span class="site-logo-uploader-label">Auto Favicon</span>
-                                <div class="site-logo-uploader" style="background:rgba(15,23,42,0.02);border:1px solid rgba(15,23,42,0.06);padding:20px;border-radius:14px;display:flex;align-items:center;gap:32px;">
-                                    <div class="site-logo-uploader__preview" style="width:72px;height:72px;min-width:72px;min-height:72px;background:#fff;border:1px solid rgba(15,23,42,0.12);box-shadow:0 12px 32px rgba(0,0,0,0.12);overflow:hidden;border-radius:14px;padding:8px;display:flex;align-items:center;justify-content:center;">
-                                        <img src="<?php echo cms_generate_text_favicon_svg($st['brand'] ?? 'C'); ?>" alt="Favicon" style="width:100%;height:100%;object-fit:contain;border-radius:4px;">
+                                <div class="site-logo-uploader" style="background:rgba(15,23,42,0.02);border:1px solid rgba(15,23,42,0.06);padding:20px;border-radius:0;display:flex;align-items:center;gap:32px;">
+                                    <div class="site-logo-uploader__preview" style="width:72px;height:72px;min-width:72px;min-height:72px;background:#fff;border:1px solid rgba(15,23,42,0.12);box-shadow:0 12px 32px rgba(0,0,0,0.12);overflow:hidden;border-radius:0;padding:8px;display:flex;align-items:center;justify-content:center;">
+                                        <img src="<?php echo cms_generate_text_favicon_svg($st['brand'] ?? 'C'); ?>" alt="Favicon" style="width:100%;height:100%;object-fit:contain;border-radius:0;">
                                     </div>
                                     <div style="flex:1; display:flex; align-items:center; border-left:1px solid rgba(15,23,42,0.1); padding-left:32px;">
-                                        <input type="color" id="st-fav-color" name="favicon_bg_color" value="<?php echo htmlspecialchars($st['favicon_bg_color'] !== '' ? $st['favicon_bg_color'] : cms_sanitize_hex_color($st['cta_call_color'] ?? '', '#4facfe')); ?>" style="width:48px;height:48px;padding:0;border:1px solid rgba(15,23,42,0.15);border-radius:8px;cursor:pointer;background:none;box-shadow:0 4px 10px rgba(0,0,0,0.05);">
+                                        <input type="color" id="st-fav-color" name="favicon_bg_color" value="<?php echo htmlspecialchars($st['favicon_bg_color'] !== '' ? $st['favicon_bg_color'] : cms_sanitize_hex_color($st['cta_call_color'] ?? '', '#4facfe')); ?>" style="width:48px;height:48px;padding:0;border:1px solid rgba(15,23,42,0.15);border-radius:0;cursor:pointer;background:none;box-shadow:0 4px 10px rgba(0,0,0,0.05);">
                                     </div>
                                 </div>
                             </div>
@@ -1149,7 +1149,7 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                                 <button type="submit" class="button button-primary">Add user</button>
                             </div>
                             <?php $newUserMenuChecked = cms_default_menu_allow_normal(); ?>
-                            <fieldset id="user-menu-allow-fieldset-new" style="border:1px solid var(--rule-l);padding:12px 14px;margin-top:14px;border-radius:4px;">
+                            <fieldset id="user-menu-allow-fieldset-new" style="border:1px solid var(--rule-l);padding:12px 14px;margin-top:14px;border-radius:0;">
                                 <legend style="font-size:12px;padding:0 6px;color:var(--ink2);">Menu access</legend>
                                 <p class="field-hint" style="margin:0 0 10px;font-size:12px;line-height:1.4;">Sidebar items this user can open. Administrators always have every item (checkboxes ignored). For <strong>Normal User</strong>, Pages and Trash are view-only (no edits or trash actions).</p>
                                 <div class="user-menu-allow-grid" style="display:grid;gap:6px;">
@@ -1193,7 +1193,7 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                             <div style="margin-top:20px;">
                                 <button type="submit" class="button button-primary">Save user</button>
                             </div>
-                            <fieldset id="user-menu-allow-fieldset-edit" style="border:1px solid var(--rule-l);padding:12px 14px;margin-top:14px;border-radius:4px;">
+                            <fieldset id="user-menu-allow-fieldset-edit" style="border:1px solid var(--rule-l);padding:12px 14px;margin-top:14px;border-radius:0;">
                                 <legend style="font-size:12px;padding:0 6px;color:var(--ink2);">Menu access</legend>
                                 <p class="field-hint" style="margin:0 0 10px;font-size:12px;line-height:1.4;">Sidebar visibility for this user. Administrators always have full access. <strong>Normal User</strong> can view pages and trash but cannot create, edit, trash, restore, or permanently delete pages.</p>
                                 <div class="user-menu-allow-grid" style="display:grid;gap:6px;">
