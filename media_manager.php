@@ -192,7 +192,7 @@ function scanUploads(string $dir): array
         return $items;
     }
     foreach (scandir($dir) as $f) {
-        if ($f === '.' || $f === '..') {
+        if ($f === '.' || $f === '..' || $f === 'index.php' || $f === '.htaccess') {
             continue;
         }
         $path = $dir . '/' . $f;

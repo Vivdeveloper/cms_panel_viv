@@ -241,7 +241,7 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                     'email_invalid' => 'Enter a valid email address, or leave the email field empty.',
                     'user_exists' => 'That email or username is already in use. Try a different one.',
                 ];
-                $adminToastStripKeys = ['saved', 'deleted', 'trashed', 'restored', 'permanently_deleted', 'settings_saved', 'contact_saved', 'contact_form_saved', 'contact_form_fields_err', 'crm_updated', 'crm_locked', 'pwd_ok', 'patched', 'user_updated', 'user_deleted', 'user_created', 'crm_deleted'];
+                $adminToastStripKeys = ['saved', 'deleted', 'trashed', 'restored', 'permanently_deleted', 'trash_emptied', 'settings_saved', 'contact_saved', 'contact_form_saved', 'contact_form_fields_err', 'crm_updated', 'crm_locked', 'pwd_ok', 'patched', 'user_updated', 'user_deleted', 'user_created', 'crm_deleted'];
                 $adminToastMessage = '';
                 $adminToastByParam = [
                     'saved'           => 'Page saved.',
@@ -249,6 +249,7 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                     'trashed'         => 'Page moved to Trash.',
                     'restored'        => 'Page restored from Trash.',
                     'permanently_deleted' => 'Page deleted permanently.',
+                    'trash_emptied'   => 'Trash emptied.',
                     'settings_saved'  => 'Site settings saved.',
                     'contact_saved'   => 'Call & WhatsApp settings saved.',
                     'contact_form_saved' => 'Contact form & email settings saved.',
@@ -370,7 +371,15 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                 <div id="trash-panel" class="wp-panel wp-panel-wide <?php echo $mainTab === 'trash' ? 'active' : ''; ?>">
                     <h1 class="wp-heading-inline">Trash</h1>
                     <hr class="wp-header-end">
-                    <p class="description" style="margin:0 0 16px;font-size:13px;color:var(--ink3);line-height:1.5;"><?php echo $cmsPagesReadOnly ? 'Trashed pages are listed here for reference. Your role is view-only — you cannot restore or delete permanently.' : 'Trashed pages are hidden from the public site. <strong>Restore</strong> moves a page back, or <strong>Delete permanently</strong> removes its file (cannot be undone).'; ?></p>
+                    <div style="display:flex; flex-wrap:wrap; gap:16px; justify-content:space-between; align-items:flex-start; margin-bottom:16px;">
+                        <p class="description" style="margin:0;font-size:13px;color:var(--ink3);line-height:1.5;flex:1;min-width:240px;"><?php echo $cmsPagesReadOnly ? 'Trashed pages are listed here for reference. Your role is view-only — you cannot restore or delete permanently.' : 'Trashed pages are hidden from the public site. <strong>Restore</strong> moves a page back, or <strong>Delete permanently</strong> removes its file (cannot be undone).'; ?></p>
+                        <?php if (!$cmsPagesReadOnly && !empty($trashedPages)): ?>
+                        <form method="post" style="margin:0;" onsubmit="return confirm('Empty the trash? ALL trashed pages will be permanently deleted. This cannot be undone.');">
+                            <input type="hidden" name="cms_csrf" value="<?php echo htmlspecialchars($csrf); ?>">
+                            <button type="submit" name="post_empty_trash" value="1" class="button" style="color:var(--red); border-color:var(--rule);">Empty Trash</button>
+                        </form>
+                        <?php endif; ?>
+                    </div>
                     <div class="pages-list">
                         <?php foreach ($trashedPages as $tp):
                             $tb = $tp['_trash_basename'] ?? '';

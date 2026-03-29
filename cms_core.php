@@ -473,6 +473,31 @@ if (isset($_POST['post_permanent_delete_page'])) {
     exit;
 }
 
+// --- POST: empty trash ---
+if (isset($_POST['post_empty_trash'])) {
+    cms_require_pages_write();
+    if (!cms_verify_csrf_post()) {
+        header('Location: viv-admin.php?tab=trash&err=csrf');
+        exit;
+    }
+    global $trashDir;
+    if (is_dir($trashDir)) {
+        foreach (scandir($trashDir) as $f) {
+            if ($f === '.' || $f === '..') {
+                continue;
+            }
+            if (cms_is_safe_trash_basename($f)) {
+                $path = $trashDir . $f;
+                if (is_file($path)) {
+                    @unlink($path);
+                }
+            }
+        }
+    }
+    header('Location: viv-admin.php?tab=trash&trash_emptied=1');
+    exit;
+}
+
 // --- POST: site settings & admin password & force patch ---
 if (isset($_POST['save_site_settings'])) {
     checkAdmin();
