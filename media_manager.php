@@ -24,7 +24,13 @@ if (!is_dir($uploadDir)) {
     mkdir($uploadDir, 0755, true);
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['media_file']) && is_uploaded_file($_FILES['media_file']['tmp_name'])) {
+// Special check for PHP's post_max_size limit (happens before script starts)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($_POST) && empty($_FILES) && (int)($_SERVER['CONTENT_LENGTH'] ?? 0) > 0) {
+    header('Location: media_manager.php?upload_err=php_post_max');
+    exit;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['media_file'])) {
     $isAjax = isset($_POST['ajax_upload']);
     if (!cms_verify_csrf_post()) {
         if ($isAjax) {
@@ -35,16 +41,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['media_file']) && is_
         header('Location: media_manager.php?upload_err=csrf');
         exit;
     }
-    $err = $_FILES['media_file']['error'] ?? UPLOAD_ERR_NO_FILE;
-    if ($err !== UPLOAD_ERR_OK) {
-        if ($isAjax) { header('Content-Type: application/json'); echo json_encode(['success' => false, 'error' => 'upload_php_' . $err]); exit; }
-        header('Location: media_manager.php?upload_err=php_' . $err);
-        exit;
-    }
-    if ($err === UPLOAD_ERR_OK) {
-        $size = (int)$_FILES['media_file']['size'];
-        $orig = basename((string)$_FILES['media_file']['name']);
+
+    $uploadedFiles = $_FILES['media_file'];
+    // Handle both single and multiple file uploads (normalize to array)
+    $fileNames = (array) ($uploadedFiles['name'] ?? []);
+    $fileTmpNames = (array) ($uploadedFiles['tmp_name'] ?? []);
+    $fileErrors = (array) ($uploadedFiles['error'] ?? []);
+    $fileSizes = (array) ($uploadedFiles['size'] ?? []);
+
+    $uploadedCount = 0;
+    $lastErr = '';
+
+    for ($i = 0; $i < count($fileNames); $i++) {
+        $err = $fileErrors[$i] ?? UPLOAD_ERR_NO_FILE;
+        if ($err !== UPLOAD_ERR_OK) {
+            if ($err !== UPLOAD_ERR_NO_FILE) {
+                $lastErr = 'php_' . $err;
+            }
+            continue;
+        }
+        
+        $tmp = $fileTmpNames[$i];
+        if (!is_uploaded_file($tmp)) continue;
+
+        $size = (int)$fileSizes[$i];
+        $orig = basename((string)$fileNames[$i]);
         $ext = strtolower(pathinfo($orig, PATHINFO_EXTENSION));
+        
         $imageMimes = ['image/jpeg', 'image/png', 'image/x-png', 'image/gif', 'image/webp', 'image/svg+xml'];
         $mimeMap = [
             'jpg' => $imageMimes, 'jpeg' => $imageMimes, 'png' => $imageMimes, 'gif' => $imageMimes,
@@ -53,16 +76,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['media_file']) && is_
             'mp4' => ['video/mp4'], 'webm' => ['video/webm'],
             'mp3' => ['audio/mpeg'], 'zip' => ['application/zip', 'application/x-zip-compressed', 'application/octet-stream'],
         ];
+
         $valid = ($size > 0 && $size <= $maxBytes && $ext !== '' && in_array($ext, $allowedExt, true));
         if ($valid) {
-            $tmp = $_FILES['media_file']['tmp_name'];
             $finfo = new finfo(FILEINFO_MIME_TYPE);
             $detectedMime = $finfo->file($tmp);
             $validMimes = $mimeMap[$ext] ?? [];
             if ($detectedMime !== false && ($validMimes === [] || in_array($detectedMime, $validMimes, true))) {
                 // Auto-convert formats if mismatch (e.g. JPG content renamed to .png)
-                $isMatch = ($validMimes === [] || in_array($detectedMime, $validMimes, true)); // Wait, this is always true here. 
-                // Let's check for specific common mismatches
                 if ($detectedMime === 'image/jpeg' && $ext === 'png') {
                     $img = @imagecreatefromjpeg($tmp);
                     if ($img) { imagepng($img, $tmp); imagedestroy($img); $size = filesize($tmp); }
@@ -75,7 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['media_file']) && is_
                 }
 
                 if ($ext === 'svg') {
-                    $svgContent = file_get_contents($_FILES['media_file']['tmp_name']);
+                    $svgContent = file_get_contents($tmp);
                     if (preg_match('/<\s*script|on\w+\s*=|javascript\s*:/i', $svgContent)) {
                         $valid = false;
                     }
@@ -97,21 +118,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['media_file']) && is_
                     }
                     
                     $destPath = $uploadDir . '/' . $destName;
-                    if (move_uploaded_file($_FILES['media_file']['tmp_name'], $destPath)) {
-                        if ($isAjax) {
-                            header('Content-Type: application/json');
-                            echo json_encode(['success' => true]);
-                            exit;
-                        }
-                        header('Location: media_manager.php?uploaded=1');
-                        exit;
+                    if (move_uploaded_file($tmp, $destPath)) {
+                        $uploadedCount++;
                     }
                 }
             }
         }
     }
-    if ($isAjax) { header('Content-Type: application/json'); echo json_encode(['success' => false, 'error' => 'validation']); exit; }
-    header('Location: media_manager.php?upload_err=validation');
+
+    if ($isAjax) {
+        header('Content-Type: application/json');
+        echo json_encode(['success' => $uploadedCount > 0, 'count' => $uploadedCount, 'error' => $lastErr ?: 'validation']);
+        exit;
+    }
+    if ($uploadedCount > 0) {
+        header('Location: media_manager.php?uploaded=' . $uploadedCount);
+        exit;
+    }
+    header('Location: media_manager.php?upload_err=' . ($lastErr ?: 'validation'));
     exit;
 }
 
@@ -330,9 +354,9 @@ $sysVer = getSystemVersion();
                                 <form class="media-upload-form" method="post" enctype="multipart/form-data"
                                     id="media-upload-form">
                                     <input type="hidden" name="cms_csrf" value="<?php echo htmlspecialchars($csrf); ?>">
-                                    <input type="file" name="media_file" id="media_file"
+                                    <input type="file" name="media_file[]" id="media_file"
                                         accept="image/*,.pdf,.zip,.mp4,.webm,.mp3,.svg"
-                                        onchange="if(this.files.length)this.form.submit();">
+                                        onchange="if(this.files.length)this.form.submit();" multiple>
                                     <label for="media_file" class="button button-primary page-title-action">Add
                                         media</label>
                                 </form>
@@ -354,7 +378,8 @@ $sysVer = getSystemVersion();
 
                         <?php
 if (!empty($_GET['uploaded'])) {
-    echo '<div class="notice notice-success is-dismissible"><p>File uploaded.</p></div>';
+    $c = (int)$_GET['uploaded'];
+    echo '<div class="notice notice-success is-dismissible"><p>' . $c . ' ' . ($c === 1 ? 'file' : 'files') . ' uploaded.</p></div>';
 }
                         if (!empty($_GET['upload_err'])) {
                             $ue = (string) $_GET['upload_err'];
@@ -363,8 +388,8 @@ if (!empty($_GET['uploaded'])) {
                                 $ueMsg = 'Security session expired. Refresh the page and try again.';
                             } elseif ($ue === 'php_1' || $ue === 'php_2') {
                                 $ueMsg = 'File is too large for the server. Check PHP upload_max_filesize and post_max_size.';
-                            } elseif ($ue === 'validation') {
-                                $ueMsg = 'Upload failed: Invalid file type or file content mismatch.';
+                            } elseif ($ue === 'php_post_max') {
+                                $ueMsg = 'Upload failed: POST limit exceeded. The total size of selected files is too large for the server configuration.';
                             }
                             echo '<div class="notice notice-error"><p>' . htmlspecialchars($ueMsg) . ' (' . htmlspecialchars($ue) . ')</p></div>';
                         }
