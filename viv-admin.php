@@ -241,7 +241,7 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                     'email_invalid' => 'Enter a valid email address, or leave the email field empty.',
                     'user_exists' => 'That email or username is already in use. Try a different one.',
                 ];
-                $adminToastStripKeys = ['saved', 'deleted', 'trashed', 'restored', 'permanently_deleted', 'settings_saved', 'contact_saved', 'contact_form_saved', 'contact_form_fields_err', 'crm_updated', 'crm_locked', 'pwd_ok', 'patched', 'user_updated', 'user_deleted', 'user_created'];
+                $adminToastStripKeys = ['saved', 'deleted', 'trashed', 'restored', 'permanently_deleted', 'settings_saved', 'contact_saved', 'contact_form_saved', 'contact_form_fields_err', 'crm_updated', 'crm_locked', 'pwd_ok', 'patched', 'user_updated', 'user_deleted', 'user_created', 'crm_deleted'];
                 $adminToastMessage = '';
                 $adminToastByParam = [
                     'saved'           => 'Page saved.',
@@ -253,6 +253,7 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                     'contact_saved'   => 'Call & WhatsApp settings saved.',
                     'contact_form_saved' => 'Contact form & email settings saved.',
                     'crm_updated' => 'Lead status saved.',
+                    'crm_deleted' => 'Lead deleted.',
                     'pwd_ok'          => 'Admin password updated.',
                     'patched'         => 'Version bumped (patch).',
                     'user_updated'    => 'User saved (role, email, menu access).',
@@ -888,6 +889,9 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                                         <th scope="col">Status</th>
                                         <th scope="col">Set status</th>
                                         <th scope="col">Call</th>
+                                        <?php if (!$cmsPagesReadOnly): ?>
+                                        <th scope="col" style="color:var(--red);">Delete</th>
+                                        <?php endif; ?>
                                         <?php foreach ($crmCols as $fc): ?>
                                         <th scope="col"><?php echo htmlspecialchars($fc['label']); ?></th>
                                         <?php endforeach; ?>
@@ -900,7 +904,7 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                                         $tel = cms_crm_tel_href($mob);
                                         $isDone = ($st === 'done');
                                         ?>
-                                    <tr class="crm-lead-row">
+                                    <tr class="crm-lead-row" id="crm-lead-<?php echo htmlspecialchars($sr['id']); ?>">
                                         <td class="crm-leads-table__date" data-label="Date"><?php echo htmlspecialchars(cms_crm_format_lead_date($sr['at'])); ?></td>
                                         <td class="crm-leads-table__status" data-label="Status"><span class="crm-badge crm-badge--<?php echo htmlspecialchars($st); ?>"><?php echo htmlspecialchars($crmStatusLabels[$st] ?? $st); ?></span></td>
                                         <td class="crm-leads-table__setstatus" data-label="Set status">
@@ -933,6 +937,20 @@ $splitMobileStripClass = ($mainTab === 'pages') ? 'mobile-show-pages-tabs' : (($
                                             <span class="button crm-call-btn crm-call-btn--disabled" title="No dialable digits in mobile field">Call</span>
                                             <?php endif; ?>
                                         </td>
+                                        <?php if (!$cmsPagesReadOnly): ?>
+                                        <td class="crm-leads-table__delete" data-label="Delete">
+                                            <form method="post" style="display:inline;margin:0;" onsubmit="return confirm('Delete this lead forever?');">
+                                                <input type="hidden" name="cms_csrf" value="<?php echo htmlspecialchars($csrf); ?>">
+                                                <input type="hidden" name="crm_submission_id" value="<?php echo htmlspecialchars($sr['id']); ?>">
+                                                <input type="hidden" name="crm_return_filter" value="<?php echo htmlspecialchars($crmFilter); ?>">
+                                                <input type="hidden" name="crm_return_q" value="<?php echo htmlspecialchars($crmQ); ?>">
+                                                <input type="hidden" name="crm_return_date" value="<?php echo htmlspecialchars($crmDatePreset); ?>">
+                                                <input type="hidden" name="crm_return_date_from" value="<?php echo htmlspecialchars($crmDateFrom); ?>">
+                                                <input type="hidden" name="crm_return_date_to" value="<?php echo htmlspecialchars($crmDateTo); ?>">
+                                                <button type="submit" name="crm_delete_lead" value="1" class="linklike" style="background:none;border:none;padding:0;font:inherit;color:var(--red);cursor:pointer;" aria-label="Delete lead" title="Delete lead"><i class="fas fa-trash-alt"></i></button>
+                                            </form>
+                                        </td>
+                                        <?php endif; ?>
                                         <?php foreach ($crmCols as $fc):
                                             $fk = $fc['name'];
                                             $cell = (string) ($sr['fields'][$fk] ?? '');

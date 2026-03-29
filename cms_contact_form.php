@@ -357,6 +357,55 @@ function cms_crm_update_submission_status(string $id, string $status, bool $only
     return $found;
 }
 
+function cms_crm_delete_submission(string $id): bool {
+    $id = strtolower(preg_replace('/[^a-f0-9]/', '', $id));
+    if (strlen($id) < 8) {
+        return false;
+    }
+    $path = cms_contact_submissions_file();
+    if (!is_file($path)) {
+        return false;
+    }
+    $fp = fopen($path, 'c+');
+    if ($fp === false) {
+        return false;
+    }
+    if (!flock($fp, LOCK_EX)) {
+        fclose($fp);
+        return false;
+    }
+    $raw = stream_get_contents($fp);
+    $list = [];
+    if ($raw !== false && trim($raw) !== '') {
+        $d = json_decode($raw, true);
+        if (is_array($d)) {
+            $list = $d;
+        }
+    }
+    $found = false;
+    foreach ($list as $i => $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+        $rid = strtolower(preg_replace('/[^a-f0-9]/', '', (string) ($row['id'] ?? '')));
+        if ($rid === $id) {
+            unset($list[$i]);
+            $found = true;
+            break;
+        }
+    }
+    if ($found) {
+        $out = json_encode(array_values($list), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        ftruncate($fp, 0);
+        rewind($fp);
+        fwrite($fp, $out);
+        fflush($fp);
+    }
+    flock($fp, LOCK_UN);
+    fclose($fp);
+    return $found;
+}
+
 /**
  * @param array{fields:array<string,string>,ip:string,mail_ok:bool} $entry
  */

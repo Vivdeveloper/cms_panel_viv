@@ -592,9 +592,57 @@ if (isset($_POST['crm_manual_status'])) {
         . '&crm_from=' . rawurlencode($rdf)
         . '&crm_to=' . rawurlencode($rdt);
     if ($crmManualOk) {
-        $q .= '&crm_updated=1';
+        $q .= '&crm_updated=1#crm-lead-' . $sid;
     } else {
-        $q .= '&crm_locked=1';
+        $q .= '&crm_locked=1#crm-lead-' . $sid;
+    }
+    header('Location: ' . $q);
+    exit;
+}
+
+if (isset($_POST['crm_delete_lead'])) {
+    checkAdmin();
+    if (!cms_verify_csrf_post()) {
+        header('Location: viv-admin.php?tab=crm&err=csrf');
+        exit;
+    }
+    if (!cms_user_can_edit_pages()) {
+        header('Location: viv-admin.php?tab=crm&err=unauthorized');
+        exit;
+    }
+    
+    $sid = (string) ($_POST['crm_submission_id'] ?? '');
+    $crmDeleteOk = cms_crm_delete_submission($sid);
+    
+    $rf = (string) ($_POST['crm_return_filter'] ?? 'all');
+    $allowedF = array_merge(['all'], cms_crm_status_values());
+    if (!in_array($rf, $allowedF, true)) {
+        $rf = 'all';
+    }
+    if (in_array($rf, ['new', 'followup'], true)) {
+        $rf = 'pending';
+    }
+    $rq = trim((string) ($_POST['crm_return_q'] ?? ''));
+    if (function_exists('mb_substr')) {
+        $rq = mb_substr($rq, 0, 200, 'UTF-8');
+    } else {
+        $rq = substr($rq, 0, 200);
+    }
+    $rd = strtolower(trim((string) ($_POST['crm_return_date'] ?? 'all')));
+    if (!in_array($rd, ['all', 'today', 'custom'], true)) {
+        $rd = 'all';
+    }
+    $rdf = cms_crm_sanitize_date_ymd((string) ($_POST['crm_return_date_from'] ?? ''));
+    $rdt = cms_crm_sanitize_date_ymd((string) ($_POST['crm_return_date_to'] ?? ''));
+    $q = 'viv-admin.php?tab=crm&crm_filter=' . rawurlencode($rf) . '&crm_q=' . rawurlencode($rq)
+        . '&crm_date=' . rawurlencode($rd)
+        . '&crm_from=' . rawurlencode($rdf)
+        . '&crm_to=' . rawurlencode($rdt);
+        
+    if ($crmDeleteOk) {
+        $q .= '&crm_deleted=1#crm-panel';
+    } else {
+        $q .= '&err=delete_failed#crm-panel';
     }
     header('Location: ' . $q);
     exit;

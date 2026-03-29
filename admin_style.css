@@ -48,41 +48,35 @@ width:36px;
 height:var(--bh);
 margin:0 4px 0 0;
 padding:0;
-border:1px solid rgba(255,255,255,.2);
-border-radius:8px;
-background:rgba(255,255,255,.08);
+border:none;
+background:transparent;
 color:#e8e8e8;
-font-size:15px;
+font-size:18px;
 line-height:1;
 cursor:pointer;
 -webkit-tap-highlight-color:transparent;
-transition:background .15s ease,border-color .15s ease,color .15s ease,box-shadow .15s ease;
+transition:color .15s ease;
 }
 .wp-menu-toggle:hover{
 color:var(--wh);
-background:rgba(255,255,255,.14);
-border-color:rgba(255,255,255,.32);
 }
 .wp-menu-toggle:focus-visible{
 outline:2px solid var(--accent);
 outline-offset:2px;
 }
 .wp-admin-shell.wp-menu-open .wp-menu-toggle{
-background:rgba(0,56,255,.28);
-border-color:rgba(120,160,255,.55);
 color:var(--wh);
-box-shadow:0 0 0 1px rgba(0,56,255,.2);
 }
 .wp-menu-toggle__icon{
 display:inline-block;
 line-height:1;
 }
 .wp-menu-toggle__icon--close{
-display:none;
+display:none !important;
 font-size:1.05em;
 }
-.wp-admin-shell.wp-menu-open .wp-menu-toggle__icon--bars{display:none}
-.wp-admin-shell.wp-menu-open .wp-menu-toggle__icon--close{display:inline-block}
+.wp-admin-shell.wp-menu-open .wp-menu-toggle__icon--bars{display:none !important}
+.wp-admin-shell.wp-menu-open .wp-menu-toggle__icon--close{display:inline-block !important}
 
 /* ── Frame ── */
 .wp-admin-frame{display:flex;flex:1;overflow:hidden;min-height:0;padding:0}
@@ -1465,44 +1459,71 @@ font-size:12px;
 }
 @media (max-width:782px){
   .wp-admin-dashboard .crm-filters{
-    flex-direction:column;
-    align-items:stretch;
-    gap:14px;
+    flex-direction:row;
+    flex-wrap:wrap;
+    align-items:flex-end;
+    gap:10px;
+    padding:10px;
   }
-  .wp-admin-dashboard .crm-filters__group,
+  .wp-admin-dashboard .crm-filters__group{
+    flex:1 1 calc(50% - 5px);
+    width:auto;
+    max-width:none;
+  }
   .wp-admin-dashboard .crm-filters__group--grow,
   .wp-admin-dashboard .crm-filters__group--actions{
-    flex:1 1 auto;
+    flex:1 1 100%;
     width:100%;
     max-width:none;
   }
   .wp-admin-dashboard .crm-filters__control{
     min-width:0;
-    min-height:44px;
+    min-height:36px;
+    height:36px;
+    font-size:13px;
+    padding:4px 8px;
   }
   .wp-admin-dashboard .crm-filters__group--grow .wp-input{
-    min-height:44px;
+    min-height:36px;
+    height:36px;
     width:100%;
     box-sizing:border-box;
+    font-size:13px;
+    padding:4px 8px;
   }
   .wp-admin-dashboard .crm-filters__btn-row{
-    flex-direction:column;
+    flex-direction:row;
     align-items:stretch;
     width:100%;
+    gap:8px;
   }
   .wp-admin-dashboard .crm-filters .crm-filters__btn-row .button.button-primary,
   .wp-admin-dashboard .crm-filters .crm-filters__btn-row .button.crm-filters__clear{
-    width:100% !important;
-    min-height:44px !important;
+    width:auto !important;
+    min-height:36px !important;
+    font-size:13px !important;
+    flex:1;
     justify-content:center;
+    padding:0 8px !important;
   }
   .wp-admin-dashboard .crm-filters__date-label .wp-input{
     width:100% !important;
-    min-height:44px !important;
+    min-height:36px !important;
+    height:36px !important;
     box-sizing:border-box;
+    font-size:13px !important;
+  }
+  .wp-admin-dashboard .crm-filters__date-label{
+    flex:1;
+    min-width:0;
   }
   .wp-admin-dashboard .crm-filters__date-inputs{
     width:100%;
+    display:flex;
+    flex-direction:row;
+    flex-wrap:nowrap;
+    align-items:center;
+    gap:8px;
   }
   /* CRM leads: compact card layout on small screens */
   .wp-admin-dashboard .crm-leads-table-wrap{
@@ -1527,24 +1548,25 @@ font-size:12px;
   .wp-admin-dashboard .crm-leads-table .crm-lead-row{
     display:block;
     margin-bottom:10px;
-    padding:10px 12px 8px;
+    padding:8px 10px;
     border:1px solid var(--rule-l);
-    border-radius:8px;
+    border-radius:6px;
     background:var(--card);
-    box-shadow:0 1px 4px rgba(0,0,0,.05);
+    box-shadow:0 1px 3px rgba(0,0,0,.04);
     box-sizing:border-box;
   }
   .wp-admin-dashboard .crm-leads-table .crm-lead-row:last-child{
     margin-bottom:0;
   }
   .wp-admin-dashboard .crm-leads-table .crm-lead-row td{
-    display:block;
+    display:flex;
+    align-items:center;
     width:100% !important;
     max-width:none !important;
-    padding:7px 0 !important;
+    padding:5px 0 !important;
     border:0 !important;
-    border-bottom:1px solid var(--rule-l) !important;
-    vertical-align:top;
+    border-bottom:1px solid rgba(0,0,0,.04) !important;
+    vertical-align:middle;
     text-align:left;
   }
   .wp-admin-dashboard .crm-leads-table .crm-lead-row td:last-child{
@@ -1557,25 +1579,25 @@ font-size:12px;
   .wp-admin-dashboard .crm-leads-table .crm-lead-row td::before{
     content:attr(data-label);
     display:block;
+    flex:0 0 35%;
     font-size:10px;
     font-weight:600;
-    letter-spacing:.05em;
+    letter-spacing:.03em;
     text-transform:uppercase;
     color:var(--mid);
-    margin-bottom:3px;
+    margin-bottom:0;
+    padding-right:8px;
+    box-sizing:border-box;
   }
   .wp-admin-dashboard .crm-leads-table__date{
-    font-size:13px;
+    font-size:12px;
     font-weight:600;
     color:var(--ink2);
     white-space:normal;
   }
-  .wp-admin-dashboard .crm-leads-table__date::before{
-    margin-bottom:2px;
-  }
   .wp-admin-dashboard .crm-leads-table__status .crm-badge{
     vertical-align:middle;
-    padding:2px 8px;
+    padding:2px 6px;
     font-size:10px;
   }
   .wp-admin-dashboard .crm-leads-table__cell{
@@ -1583,54 +1605,64 @@ font-size:12px;
     word-break:break-word;
     overflow-wrap:anywhere;
     font-size:13px;
-    line-height:1.4;
+    line-height:1.3;
     color:var(--ink2);
+    flex:1;
   }
   .wp-admin-dashboard .crm-leads-table__cell .crm-field-empty{
-    font-size:13px;
+    font-size:12px;
   }
   .wp-admin-dashboard .crm-leads-table__call{
     white-space:normal;
   }
   .wp-admin-dashboard .crm-leads-table .crm-call-btn,
   .wp-admin-dashboard .crm-leads-table span.crm-call-btn.crm-call-btn--disabled{
-    width:100% !important;
+    width:auto !important;
     max-width:100%;
     box-sizing:border-box;
     justify-content:center !important;
-    min-height:40px !important;
+    min-height:30px !important;
     padding:0 12px !important;
-    font-size:13px !important;
+    font-size:12px !important;
+    flex:1;
   }
   .wp-admin-dashboard .crm-leads-table .crm-status-form{
     max-width:none;
-    flex-direction:column;
-    align-items:stretch;
+    display:flex;
+    flex-direction:row;
+    flex-wrap:nowrap;
+    align-items:center;
     gap:6px;
     width:100%;
+    flex:1;
   }
   .wp-admin-dashboard .crm-leads-table .crm-status-form__select{
-    min-height:40px !important;
-    width:100% !important;
+    min-height:30px !important;
+    width:auto !important;
+    flex:1;
     min-width:0 !important;
     max-width:none;
-    flex:none;
-    font-size:13px !important;
-    padding:6px 8px !important;
+    font-size:12px !important;
+    padding:4px 8px !important;
   }
   .wp-admin-dashboard .crm-leads-table .crm-status-form__btn{
-    min-height:40px !important;
-    width:100% !important;
+    min-height:30px !important;
+    width:auto !important;
     min-width:0 !important;
-    font-size:13px !important;
+    flex:0 0 auto;
+    font-size:12px !important;
+    padding:0 12px !important;
   }
   .wp-admin-dashboard .crm-leads-table .crm-status-locked{
-    width:100%;
-    justify-content:center;
+    width:auto;
+    justify-content:flex-start;
     box-sizing:border-box;
-    min-height:36px;
-    padding:4px 10px;
+    min-height:28px;
+    padding:4px 8px;
     font-size:11px;
+    flex:1;
+    background:transparent;
+    border:none;
   }
 }
 
